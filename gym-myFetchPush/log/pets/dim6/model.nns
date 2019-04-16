@@ -1,0 +1,4 @@
+FC(output_dim=200, input_dim=10, activation='swish', weight_decay=0.00025, ensemble_size=5)
+FC(output_dim=200, input_dim=200, activation='swish', weight_decay=0.0005, ensemble_size=5)
+FC(output_dim=200, input_dim=200, activation='swish', weight_decay=0.0005, ensemble_size=5)
+FC(output_dim=6, input_dim=200, activation=None, weight_decay=0.00075, ensemble_size=5)

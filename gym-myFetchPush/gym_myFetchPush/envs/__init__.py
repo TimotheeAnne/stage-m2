@@ -1,0 +1,3 @@
+from gym_myFetchPush.envs.myFetchPush import MyFetchPush
+from gym_myFetchPush.envs.myMultiTaskFetchArmNLP import MyMultiTaskFetchArmNLP
+from gym_myFetchPush.envs.myMultiTaskFetchArmNLP_v1 import MyMultiTaskFetchArmNLP_v1
