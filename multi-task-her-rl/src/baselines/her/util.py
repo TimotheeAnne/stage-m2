@@ -24,7 +24,6 @@ def log(epoch, evaluator, rollout_worker, policy, best_success_rate, save_polici
     for key, val in evaluator.logs('test'):
         logger.record_tabular(key, mpi_average(val))
     for key, val in rollout_worker.logs('train'):
-        print('_________________________________________________________', key,val)
         logger.record_tabular(key, mpi_average(val))
     for key, val in policy.logs():
         logger.record_tabular(key, mpi_average(val))

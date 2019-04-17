@@ -24,7 +24,13 @@ class Normalization:
         self.inputs_std = np.std(inputs,axis=0)
         self.outputs_mean = np.mean(outputs,axis=0)
         self.outputs_std = np.std(outputs,axis=0)
-    
+        for i in range(len(self.inputs_std)):
+            if self.inputs_std[i] == 0.:
+                self.inputs_std[i] = 1
+        for i in range(len(self.outputs_std)):
+            if self.outputs_std[i] == 0.:
+                self.outputs_std[i] = 1
+        
     def load(self, model_dir):
         with open(os.path.join(model_dir, "norm.pk"), "br") as f:
             [self.inputs_mean,self.inputs_std,self.outputs_mean, self.outputs_std] = pickle.load(f)
@@ -50,10 +56,11 @@ def compute_samples(Episodes,norm):
     for j in range(len(Episodes['o'])):
         for t in range(50):
             inputs = np.concatenate((Episodes['o'][j][t][:25],Episodes['u'][j][t]))
-            targets = Episodes['o_2'][j][t][:25]
+            targets = Episodes['o'][j][t+1][:25]- Episodes['o'][j][t][:25]
             Inputs.append(inputs)
             Targets.append(targets)
     norm.init(Inputs,Targets)
+    # ~ norm.pretty_print()
     return (norm.normalize_inputs(np.array(Inputs)),norm.normalize_outputs(np.array(Targets)))
     
 class MyMultiTaskFetchArmNLP_v1(gym.Env):
@@ -80,7 +87,7 @@ class MyMultiTaskFetchArmNLP_v1(gym.Env):
         self.model_dir = "/home/tim/Documents/stage-m2/gym-myFetchPush/log/tf25/"
         self.norm = Normalization()
         self.model = self.nn_constructor(self.model_dir)
-        self.EPOCH = 20
+        self.EPOCH = 100
 
 
     def nn_constructor(self,model_dir):
@@ -110,6 +117,8 @@ class MyMultiTaskFetchArmNLP_v1(gym.Env):
 
     def train(self, Episodes):
         self.model.set_weights(self.weight_init)
+        # ~ with open("/home/tim/Documents/stage-m2/tf_test/data/random.pk", "br") as f:
+            # ~ Episodes = pickle.load(f)
         (x_train, y_train) = compute_samples(Episodes, self.norm)
         self.model.fit(x_train, y_train, epochs=self.EPOCH,shuffle=True, verbose=False)
 
@@ -140,7 +149,6 @@ class MyMultiTaskFetchArmNLP_v1(gym.Env):
         inputs = np.array([ self.norm.normalize_inputs(np.concatenate((self._observation[:25],action)))])
         
         pred = self.norm.denormalize_outputs(self.model.predict(inputs))
-
         self._observation[:25] = self._observation[:25] + pred[0]
         self._observation[25:] += pred[0]
         """ increment step """
@@ -148,20 +156,21 @@ class MyMultiTaskFetchArmNLP_v1(gym.Env):
             
         return self._observation.copy(), 0, False, {}
       
-    def reset(self):
-        self._observation = np.zeros(50)
-        self._observation[:3]= np.array([1.34193113, 0.74890335, 0.484762558])
-        self._observation[3:5] = self._observation[:2] + np.random.uniform(-self.obj_range, self.obj_range, size=2)
-        self._observation[5] = 0.425990820
-        self._observation[6:9] = self._observation[3:6]-self._observation[:3]
-        self._observation[9:25] =   [2.71748964e-06, -9.48888964e-08, -0.00000000e+00,
-                                      0.00000000e+00, -0.00000000e+00 ,-6.22253242e-05, -2.83505750e-07,
-                                      6.65625574e-04,  5.45834835e-10, -4.74639458e-10 ,-1.96138370e-16,
-                                      6.22253120e-05 , 2.83491664e-07, -3.98201343e-05 , 4.72693405e-07,
-                                      2.35609066e-07 ]
-
-        # ~ self.model_index = np.random.randint(5)
-        
+    def reset(self, obs=None):
+        if True or obs is None:
+            self._observation = np.zeros(50)
+            self._observation[:3]= np.array([1.34193113, 0.74890335, 0.484762558])
+            self._observation[3:5] = self._observation[:2] + np.random.uniform(-self.obj_range, self.obj_range, size=2)
+            self._observation[5] = 0.425990820
+            self._observation[6:9] = self._observation[3:6]-self._observation[:3]
+            self._observation[9:25] =   [2.71748964e-06, -9.48888964e-08, -0.00000000e+00,
+                                          0.00000000e+00, -0.00000000e+00 ,-6.22253242e-05, -2.83505750e-07,
+                                          6.65625574e-04,  5.45834835e-10, -4.74639458e-10 ,-1.96138370e-16,
+                                          6.22253120e-05 , 2.83491664e-07, -3.98201343e-05 , 4.72693405e-07,
+                                          2.35609066e-07 ]
+        else:
+            self._observation = obs.copy()
+            
         self._steps = 0
         
         return  self._observation.copy() 

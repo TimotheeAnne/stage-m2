@@ -65,7 +65,7 @@ class MyMultiTaskFetchArmNLP(gym.Env):
         
         
         """ model Loading """
-        self.model_dir = "/home/tim/Documents/stage-m2/gym-myFetchPush/log/tf25/"
+        self.model_dir = "/home/tanne/Experiment/stage-m2/gym-myFetchPush/log/tf25/"
         self.norm = Normalization()
         self.model = self.nn_constructor(self.model_dir)
         
