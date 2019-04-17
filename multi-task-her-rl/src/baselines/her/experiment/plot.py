@@ -34,18 +34,20 @@ colors = matlab_colors2
 
 # ~ folder_path = '/home/tim/Documents/stage-m2/multi-task-her-rl/src/data/myMultiTaskFetchArmNLP-v0/'
 folder_path = '/home/tim/Documents/stage-m2/multi-task-her-rl/src/data/MultiTaskFetchArmNLP1-v0/'
-folder_path = '/home/tim/Documents/stage-m2/multi-task-her-rl/src/data/from_remote/'
-trials = ['13_onmyEnv_85%'] #list(range(30,40))#
+# ~ folder_path = '/home/tim/Documents/stage-m2/multi-task-her-rl/src/data/from_remote/'
+trials = ['8900'] #list(range(30,40))#
 
 track_time = False
 live_plot = False
 use_groups = True
 
 # ~ groups = [[0, 1, 2, 3, 4, 5, 6, 7], [8, 10, 12, 13, 14, 15], [20, 22, 24, 25, 26, 27], [32, 34], [9, 11, 16, 17, 18, 19], [21, 23, 28, 29, 30, 31], [33, 35]]
-groups = [[0, 1, 2, 3, 4, 5, 6, 7], [8, 9, 10, 11, 12]]
-
+# ~ groups = [[0, 1, 2, 3, 4, 5, 6, 7], [8, 9, 10, 11, 12]]
+groups = [[0],[1],[2],[3]]
 groups_colors = [[0.92, 0.28, 0.28], [0.98, 0.83, 0.37], [0.92, 0.71, 0.039], [0.90, 0.56, 0.05], [0.59, 0.74, 0.93], [0.28, 0.58, 0.92], [0.054, 0.30, 0.68]]
-group_legend = ['Gripper', 'Move yellow cube', 'Lift yellow cube', 'Stack yellow cube', 'Move blue cube',  'Lift blue cube','Stack blue cube']
+# ~ group_legend = ['Gripper', 'Move yellow cube', 'Lift yellow cube', 'Stack yellow cube', 'Move blue cube',  'Lift blue cube','Stack blue cube']
+group_legend = instructions[:4]
+
 
 for trial in trials:
     print('Ploting trial', trial)

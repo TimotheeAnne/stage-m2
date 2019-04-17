@@ -52,13 +52,14 @@ def train(policy, env_worker, model_worker, evaluator, reward_function, model_bu
     first_time = last_time = time.time()
     best_success_rate = -1
 
+    my_tqdm = (lambda x: x) if rank >0 else tqdm
     for epoch in range(n_epochs):
 
         # train
         """ Collecting Data for training the model """
         env_worker.clear_history()
 
-        for i_c in tqdm(range(n_collect)):
+        for i_c in my_tqdm(range(n_collect)):
             # interact with the environment
             episode, goals_reached_ids = env_worker.generate_rollouts()
             # save experience in memory
@@ -71,7 +72,7 @@ def train(policy, env_worker, model_worker, evaluator, reward_function, model_bu
         """ Training DDPG on the model """
         model_worker.clear_history()
 
-        for i_c in tqdm(range(n_cycles)):
+        for i_c in my_tqdm(range(n_cycles)):
             # interact with the environment
             episode, goals_reached_ids = model_worker.generate_rollouts()
             # save experience in memory
@@ -85,7 +86,7 @@ def train(policy, env_worker, model_worker, evaluator, reward_function, model_bu
         # test
         evaluator.clear_history()
         episodes = []
-        for _ in tqdm(range(n_test_rollouts)):
+        for _ in my_tqdm(range(n_test_rollouts)):
             episode, goals_reached_ids = evaluator.generate_rollouts()
             episodes.append( (episode, goals_reached_ids ))
         if rank == 0:
@@ -197,7 +198,6 @@ def launch(env, trial_id, n_epochs, num_cpu, seed, replay_strategy, policy_save_
 
     buffer_size = (params_for_model['_buffer_size'] // params_for_model['rollout_batch_size']) * params_for_model['rollout_batch_size']
     model_buffer = ReplayBuffer(buffer_shapes, buffer_size, 50, None)
-
         
     env_worker = RolloutWorker(params['make_env'], policy, dims, logger,  nb_goals, **rollout_params)
     env_worker.seed(rank_seed)
