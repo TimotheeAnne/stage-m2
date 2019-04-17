@@ -111,7 +111,7 @@ class MyMultiTaskFetchArmNLP_v1(gym.Env):
     def train(self, Episodes):
         self.model.set_weights(self.weight_init)
         (x_train, y_train) = compute_samples(Episodes, self.norm)
-        self.model.fit(x_train, y_train, epochs=self.EPOCH,shuffle=True)
+        self.model.fit(x_train, y_train, epochs=self.EPOCH,shuffle=True, verbose=False)
 
     def seed(self, seed):
         random.seed(seed)
