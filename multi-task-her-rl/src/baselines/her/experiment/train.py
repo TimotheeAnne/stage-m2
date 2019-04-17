@@ -51,14 +51,15 @@ def train(policy, env_worker, model_worker, evaluator, reward_function, model_bu
         periodic_policy_path = None
     first_time = last_time = time.time()
     best_success_rate = -1
-
+    
+    my_tqdm = (lambda x: x) if rank > 0 else tqdm
     for epoch in range(n_epochs):
 
         # train
         """ Collecting Data for training the model """
         env_worker.clear_history()
 
-        for i_c in tqdm(range(n_collect)):
+        for i_c in range(n_collect):
             # interact with the environment
             episode, goals_reached_ids = env_worker.generate_rollouts()
             # save experience in memory
@@ -71,7 +72,7 @@ def train(policy, env_worker, model_worker, evaluator, reward_function, model_bu
         """ Training DDPG on the model """
         model_worker.clear_history()
 
-        for i_c in tqdm(range(n_cycles)):
+        for i_c in my_tqdm(range(n_cycles)):
             # interact with the environment
             episode, goals_reached_ids = model_worker.generate_rollouts()
             # save experience in memory
@@ -81,11 +82,10 @@ def train(policy, env_worker, model_worker, evaluator, reward_function, model_bu
                 policy.train()
             policy.update_target_net()
 
-
         # test
         evaluator.clear_history()
         episodes = []
-        for _ in tqdm(range(n_test_rollouts)):
+        for _ in range(n_test_rollouts):
             episode, goals_reached_ids = evaluator.generate_rollouts()
             episodes.append( (episode, goals_reached_ids ))
         if rank == 0:
