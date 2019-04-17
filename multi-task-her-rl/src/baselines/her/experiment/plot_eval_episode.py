@@ -37,10 +37,14 @@ def plot_episode(data,epoch, logdir):
     fig,axarr = plt.subplots(1,1,figsize=FIGSIZE)
     for j in range(n_goals):
         [episode,rew] = data[epoch][j]
-        obs = episode['o'][0]
-        plt.scatter( obs[0,0],obs[0,1], c='b')
-        plt.plot(obs[:,1],obs[:,0], label=tasks[j]+[' failure',' success'][rew[0]], ls=['--','-'][rew[0]], lw=LW, c=colors[j])
-        plt.plot(obs[:,4],obs[:,3], ls=[':','-.'][rew[0]], lw=LW, c=colors[j])
+        for i in range(len(episode)):
+            obs = episode['o'][i]
+            plt.scatter( obs[0,0],obs[0,1], c='b')
+            if i ==0:
+                plt.plot(obs[:,1],obs[:,0], label=tasks[j]+[' failure',' success'][rew[0]], ls=['--','-'][rew[0]], lw=LW, c=colors[j])
+            else:
+                plt.plot(obs[:,1],obs[:,0], ls=['--','-'][rew[0]], lw=LW, c=colors[j])
+            plt.plot(obs[:,4],obs[:,3], ls=[':','-.'][rew[0]], lw=LW, c=colors[j])
 
     plt.legend()
     plt.xlim((1.5,0))

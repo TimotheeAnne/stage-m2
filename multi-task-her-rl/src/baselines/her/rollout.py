@@ -52,9 +52,9 @@ class RolloutWorker:
 
         self.oracle_reward_function = OracleRewardFuntion(self.nb_goals)
 
-        if self.eval:
+        # ~ if self.eval:
             # one queue for each goal/instruction.
-            self.returns_histories = [deque(maxlen=history_len) for _ in range(self.nb_goals)]
+        self.returns_histories = [deque(maxlen=history_len) for _ in range(self.nb_goals)]
 
         self.rollout_batch_size = rollout_batch_size
 
@@ -112,6 +112,7 @@ class RolloutWorker:
         obs, acts, goals = [], [], []
         Qs = []
         timee = time.time()
+
         for t in range(self.T):
             policy_output = self.policy.get_actions(
                 o, self.g,
@@ -164,7 +165,9 @@ class RolloutWorker:
                        u=acts,
                        g=goals,
                        )
+        
 
+            
         # compute rewards if self.eval
         if self.eval:
             # ~ goals_reached_ids = None
@@ -173,7 +176,11 @@ class RolloutWorker:
             # switch to next goal to be tested
             self.tested_goal_counter += 1
             goals_reached_ids = returns
-        else:
+
+        else:        
+            goal_id = np.where( self.g[0] == 1.)[0][0]
+            returns = np.array(self.oracle_reward_function.eval_goal_from_episode(episode, goal_id=goal_id))
+            self.returns_histories[goal_id].append(returns.mean())
             rewards = self.oracle_reward_function.eval_all_goals_from_episode(episode)
             goals_reached_ids = []
             for i in range(rewards.shape[0]):
@@ -188,7 +195,6 @@ class RolloutWorker:
         self.n_episodes += self.rollout_batch_size
 
         return convert_episode_to_batch_major(episode), goals_reached_ids
-
 
 
     def current_success_rate(self):
@@ -228,9 +234,10 @@ class RolloutWorker:
         """Generates a dictionary that contains all collected statistics.
         """
         logs = []
-        if self.eval:
+        if True or self.eval:
             for i in range(self.nb_goals):
                 logs+= [('success_goal_' + str(i), np.mean(self.returns_histories[i]))]
+                
         if self.compute_Q:
             logs += [('mean_Q', np.mean(self.Q_history))]
         logs += [('episode', self.n_episodes * self.nb_cpu)]

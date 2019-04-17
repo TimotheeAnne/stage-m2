@@ -51,13 +51,14 @@ def train(policy, env_worker, model_worker, evaluator, reward_function, model_bu
         periodic_policy_path = None
     first_time = last_time = time.time()
     best_success_rate = -1
-    
-    my_tqdm = (lambda x: x) if rank > 0 else tqdm
+
+    my_tqdm = (lambda x: x) if rank >0 else tqdm
     for epoch in range(n_epochs):
 
         # train
         """ Collecting Data for training the model """
         env_worker.clear_history()
+
 
         for i_c in range(n_collect):
             # interact with the environment
@@ -197,7 +198,6 @@ def launch(env, trial_id, n_epochs, num_cpu, seed, replay_strategy, policy_save_
 
     buffer_size = (params_for_model['_buffer_size'] // params_for_model['rollout_batch_size']) * params_for_model['rollout_batch_size']
     model_buffer = ReplayBuffer(buffer_shapes, buffer_size, 50, None)
-
         
     env_worker = RolloutWorker(params['make_env'], policy, dims, logger,  nb_goals, **rollout_params)
     env_worker.seed(rank_seed)

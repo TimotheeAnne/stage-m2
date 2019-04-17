@@ -24,12 +24,14 @@ def log(epoch, evaluator, rollout_worker, policy, best_success_rate, save_polici
     for key, val in evaluator.logs('test'):
         logger.record_tabular(key, mpi_average(val))
     for key, val in rollout_worker.logs('train'):
+        print('_________________________________________________________', key,val)
         logger.record_tabular(key, mpi_average(val))
     for key, val in policy.logs():
         logger.record_tabular(key, mpi_average(val))
     logger.record_tabular('pos_rew_ratio', mpi_average(policy.get_positive_reward_stat()))
     logger.record_tabular('total_duration (s)', new_time - first_time)
     logger.record_tabular('epoch_duration (s)', new_time - last_time)
+    
 
     if rank == 0:
         logger.dump_tabular()
