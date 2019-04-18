@@ -274,10 +274,16 @@ class RolloutWorker:
             for i in range(self.nb_goals):
                 logs+= [('success_goal_' + str(i), np.mean(self.returns_histories[i]))]
         if self.eval:
-            logs+= [('TP', np.mean(self.confusion_matrice[0]))]
-            logs+= [('FP', np.mean(self.confusion_matrice[1]))]
-            logs+= [('TN', np.mean(self.confusion_matrice[2]))]
-            logs+= [('FN', np.mean(self.confusion_matrice[3]))]
+            [TP, FP, TN, FN] = self.confusion_matrice
+            logs+= [('count_TP', TP)]
+            logs+= [('count_FP', FP)]
+            logs+= [('count_TN', TN)]
+            logs+= [('count_FN', FN)]
+            
+            logs+= [('rate_TPR', TP/(TP+FN))]
+            logs+= [('rate_TNR', TN/(TN+FP))]
+            logs+= [('rate_ACC', (TP+TN)/(TP+TN+FP+FN))]
+            logs+= [('rate_F1 score', 2*TP/(2*TP+FP+FN))]
             
         if self.compute_Q:
             logs += [('mean_Q', np.mean(self.Q_history))]
