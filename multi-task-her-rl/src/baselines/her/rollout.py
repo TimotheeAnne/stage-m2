@@ -15,7 +15,7 @@ class RolloutWorker:
     @store_args
     def __init__(self, make_env, policy, dims, logger, nb_goals,T, eval, goal_sampling_policy=None,
                  rollout_batch_size=1, exploit=False, use_target_net=False, compute_Q=False, noise_eps=0,
-                 random_eps=0, history_len=100, render=False, save=False,  **kwargs):
+                 random_eps=0, history_len=100, render=False, save=False, eval_env=None, **kwargs):
         """Rollout worker generates experience by interacting with one or many environments.
 
         Args:
@@ -39,7 +39,10 @@ class RolloutWorker:
             history_len (int): length of history for statistics smoothing
             render (boolean): whether or not to render the rollouts
         """
-        self.envs = [make_env() for _ in range(rollout_batch_size)]
+        if self.eval:
+            self.envs = [make_env(), eval_env]
+        else:
+            self.envs = [make_env() for _ in range(rollout_batch_size)]
         assert self.T > 0
 
         self.info_keys = [key.replace('info_', '') for key in dims.keys() if key.startswith('info_')]
@@ -63,16 +66,20 @@ class RolloutWorker:
         self.tested_goal_counter = 0
         self.epoch_start_time = time.time()
         self.start_time = time.time()
-
+        self.confusion_matrice = np.zeros(4)
+        
         self.reset_all_rollouts()
         self.clear_history()
-
+        
 
     def reset_rollout(self, i):
         """Resets the `i`-th rollout environment, re-samples a new goal, and updates the `initial_o`
         and `g` arrays accordingly.
         """
-        self.initial_o[i] = self.envs[i].reset()
+        if self.eval and i == 1:
+                self.initial_o[i] = self.envs[i].reset( self.initial_o[0])
+        else:
+            self.initial_o[i] = self.envs[i].reset()
         # sample all goals from the goal_sampler of rank 0 (the only that contains data)
         goals = []
         if self.rank == 0:
@@ -96,6 +103,7 @@ class RolloutWorker:
             self.reset_rollout(i)
 
 
+
     def generate_rollouts(self, index=None):
         """Performs `rollout_batch_size` rollouts in parallel for time horizon `T` with the current
         policy acting on it accordingly.
@@ -112,6 +120,8 @@ class RolloutWorker:
         obs, acts, goals = [], [], []
         Qs = []
         timee = time.time()
+
+
 
         for t in range(self.T):
             policy_output = self.policy.get_actions(
@@ -139,6 +149,8 @@ class RolloutWorker:
                 try:
                     # We fully ignore the reward here because it will have to be re-computed
                     # for HER.
+                    if self.eval:
+                        u[1] = u[0].copy()
                     o_new[i], _, _, _ = self.envs[i].step(u[i])
                     # ~ o_new[i], _, _, _ = self.envs[i].step([0,1,0,0])
 
@@ -148,7 +160,7 @@ class RolloutWorker:
                     return self.generate_rollouts()
 
             if np.isnan(o_new).any():
-                self.logger.warning('NaN caught during rollout generation. Trying again...')
+                # ~ self.logger.warning('NaN caught during rollout generation. Trying again...')
                 self.reset_all_rollouts()
                 return self.generate_rollouts()
 
@@ -160,22 +172,24 @@ class RolloutWorker:
         obs.append(o.copy())
         self.initial_o[:] = o
 
-
+        
         episode = dict(o=obs,
                        u=acts,
                        g=goals,
                        )
-        
 
             
         # compute rewards if self.eval
         if self.eval:
-            # ~ goals_reached_ids = None
             returns = np.array(self.oracle_reward_function.eval_goal_from_episode(episode, goal_id=self.tested_goal_counter))
+            returns = returns[:1]
             self.returns_histories[self.tested_goal_counter].append(returns.mean())
             # switch to next goal to be tested
             self.tested_goal_counter += 1
             goals_reached_ids = returns
+            ''' confusion matrices between the model and the env successes '''
+            all_goals_reached = self.oracle_reward_function.eval_all_goals_from_whole_episode(episode)
+            self.compute_confusion_matrix_with_model(all_goals_reached)
 
         else:        
             goal_id = np.where( self.g[0] == 1.)[0][0]
@@ -197,6 +211,25 @@ class RolloutWorker:
         return convert_episode_to_batch_major(episode), goals_reached_ids
 
 
+    def compute_confusion_matrix_with_model(self, goals_reached):
+        ''' Compute the confusion matrices between the model and the true env successes '''
+        confusion_matrice = np.zeros(4)
+        env = goals_reached[0]
+        model = goals_reached[1]
+        for t in range(len(env)):
+            for i in range(len(env[t])):
+                g_e, g_m = env[t][i], model[t][i]
+                if g_e == 1 and g_m == 1:
+                    confusion_matrice[0] += 1
+                elif g_e == 0 and g_m == 1:
+                    confusion_matrice[1] += 1
+                elif g_e == 0 and g_m == 0:
+                    confusion_matrice[2] += 1
+                else:
+                    confusion_matrice[3] += 1
+        self.confusion_matrice += confusion_matrice
+
+
     def current_success_rate(self):
         if self.eval:
             out = []
@@ -213,9 +246,12 @@ class RolloutWorker:
     def clear_history(self):
         """Clears all histories that are used for statistics
         """
+        for return_hist in self.returns_histories:
+            return_hist.clear()
         if self.eval:
-            for return_hist in self.returns_histories:
-                return_hist.clear()
+            # ~ for return_hist in self.returns_histories:
+                # ~ return_hist.clear()
+            self.confusion_matrice = np.zeros(4)
             self.tested_goal_counter = 0
             self.epoch_start_time = time.time()
         self.Q_history.clear()
@@ -234,10 +270,15 @@ class RolloutWorker:
         """Generates a dictionary that contains all collected statistics.
         """
         logs = []
-        if True or self.eval:
+        if True: # self.eval:
             for i in range(self.nb_goals):
                 logs+= [('success_goal_' + str(i), np.mean(self.returns_histories[i]))]
-                
+        if self.eval:
+            logs+= [('TP', np.mean(self.confusion_matrice[0]))]
+            logs+= [('FP', np.mean(self.confusion_matrice[1]))]
+            logs+= [('TN', np.mean(self.confusion_matrice[2]))]
+            logs+= [('FN', np.mean(self.confusion_matrice[3]))]
+            
         if self.compute_Q:
             logs += [('mean_Q', np.mean(self.Q_history))]
         logs += [('episode', self.n_episodes * self.nb_cpu)]

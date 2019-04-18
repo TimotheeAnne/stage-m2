@@ -66,6 +66,17 @@ class OracleRewardFuntion:
         all_predictions = oracle_reward_function_all(self.task_instructions, state)
         return all_predictions.squeeze()
 
+    def eval_all_goals_from_whole_episode(self, episode):
+        rollout_batch_size = len(episode['o'][0])
+        Successes = []
+        for i in range(rollout_batch_size):
+            successes = []
+            for t in range(len(episode['o'])):
+                all_goal_successes = (self.eval_all_goals_from_state(episode['o'][t][i]) == 0).astype(np.float)
+                successes.append(all_goal_successes)
+            Successes.append(successes)
+        return np.array(Successes)
+
     def eval_all_goals_from_episode(self, episode):
         rollout_batch_size = len(episode['o'][0])
         successes = []

@@ -8,11 +8,15 @@ from tqdm import tqdm
 
 FIGSIZE = (15,9)
 
-training_data =  "./data/transition_multi25_0noise_train.pk"
-eval_data = "./data/transition_multi25_0noise_eval.pk"
+# ~ training_data =  "./data/transition_multi25_0noise_train.pk"
+# ~ eval_data = "./data/transition_multi25_0noise_eval.pk"
 
-# ~ eval_data ="./data/transition_multiTask_1_eval.pk"
 # ~ training_data = "./data/transition_multiTask_1_train.pk"
+# ~ eval_data ="./data/transition_multiTask_1_eval.pk"
+
+
+training_data = "/home/tim/Documents/stage-m2/tf_test/data/random.pk"
+eval_data ="/home/tim/Documents/stage-m2/multi-task-her-rl/src/data/MultiTaskFetchArmNLP1-v0/11900/eval_episodes.pk"
 
 timestamp = datetime.datetime.now()
 logdir = './log/'+str(timestamp)
@@ -21,10 +25,10 @@ os.makedirs(logdir)
 
 class Normalization:
     def __init__(self):
-        self.inputs_mean = None
-        self.inputs_std = None
-        self.outputs_mean = None
-        self.outputs_std = None
+        self.inputs_mean = 0
+        self.inputs_std = 1
+        self.outputs_mean = 0
+        self.outputs_std = 1
         
     def init(self,inputs,outputs):
         self.inputs_mean = np.mean(inputs,axis=0)
@@ -54,7 +58,7 @@ class Normalization:
 
 REG = 0.0005
 INPUT_DIM = 29
-EPOCH = 50
+EPOCH = 10
 
 norm = Normalization()
 
@@ -75,65 +79,89 @@ def plot_MSE( data):
 
 def compute_samples(data,norm):
     f = open(data , 'rb')
-    [true_traj,Acs] = pickle.load(f)
+    data = pickle.load(f)
     f.close()
+
     Inputs = []
     Targets = []
+        
+    if type(data) is dict:
+        true_traj,Acs = data['o'], data['u']
+    else:
+        [true_traj,Acs] = data
+        
     for j in range(len(true_traj)):
         for t in range(50):
-            inputs = np.concatenate((true_traj[j][t],Acs[j][t]))
-            targets = true_traj[j][t+1]- true_traj[j][t]
+            inputs = np.concatenate((true_traj[j][t][:25],Acs[j][t]))
+            targets = true_traj[j][t+1][:25] - true_traj[j][t][:25]
             Inputs.append(inputs)
             Targets.append(targets)
-    if norm.inputs_mean is None:
-        norm.init(Inputs,Targets)
+    norm.init(Inputs,Targets)
+    # ~ norm.pretty_print()
     return (norm.normalize_inputs(np.array(Inputs)),norm.normalize_outputs(np.array(Targets)))
 
 
-def evaluation(model, norm, data="eval"):
-    print("*** Prediction evaluation: "+data)
-    if data == "eval":
+def evaluation(model, norm, data_type="eval"):
+    print("*** Prediction evaluation: "+data_type)
+    if data_type == "eval":
         f = open(eval_data , 'rb')
     else:
         f = open(training_data , 'rb')
-    [true_traj,Acs] = pickle.load(f)
+    
+    data =  pickle.load(f)
     f.close()
+    
 
+    
+    if type(data) is dict:
+        true_traj, Acs = data['o'], data['u']
+    else:
+        if data_type == "eval":
+            data = data[0][0]
+            true_traj, Acs = data['o'][1:], data['u'][1:]
+        else:
+            [true_traj,Acs] = data
+
+    true_traj = np.array(true_traj)
     pred = []
     error_traj = []
     print("Trajectory")
     for j in tqdm(range(len(true_traj))):
-        obs = [true_traj[j][0]]
+        obs = [true_traj[j][0][:25]]
         for t in range(50):
             inputs = norm.normalize_inputs(np.concatenate((obs[-1],Acs[j][t])))
             inputs = np.array([inputs])
+            # ~ if j == 0 and t<3:
+                # ~ print('input', inputs)
+                # ~ print(j,t, model.predict(inputs)[0])
+                # ~ print('pred', norm.denormalize_outputs(model.predict(inputs)[0])+obs[-1])
             obs.append(norm.denormalize_outputs(model.predict(inputs)[0])+obs[-1])
         pred.append(obs)
-        error_traj.append( np.linalg.norm(obs-np.array(true_traj[j])))
-    true_traj = np.array(true_traj)
+        error_traj.append( np.linalg.norm(obs-np.array(true_traj[j,:,:25])))
+
     pred_traj = np.array(pred)
     
     print("Transition")
     pred = []
     error_trans = []
     for j in tqdm(range(len(true_traj))):
-        obs = [true_traj[j][0]]
+        obs = [true_traj[j][0][:25]]
         for t in range(50):
-            inputs = np.array([norm.normalize_inputs(np.concatenate((true_traj[j][t],Acs[j][t])))])
-            obs.append(norm.denormalize_outputs(model.predict(inputs)[0])+true_traj[j][t])
+            inputs = np.array([norm.normalize_inputs(np.concatenate((true_traj[j][t][:25],Acs[j][t])))])
+            obs.append(norm.denormalize_outputs(model.predict(inputs)[0])+true_traj[j][t][:25])
         pred.append(obs)
-        error_trans.append( np.linalg.norm(obs-np.array(true_traj[j])))
+        error_trans.append( np.linalg.norm(obs-np.array(true_traj[j,:,:25])))
     pred_trans = np.array(pred)
     
 
-    filename = logdir+"/"+data+".pk"
+    filename = logdir+"/"+data_type+".pk"
     f = open(filename,'bw')
     pickle.dump((pred_traj,pred_trans,true_traj,error_traj,error_trans),f)
     f.close()
 
 
 (x_train, y_train) = compute_samples( training_data, norm)
-(x_eval, y_eval) = compute_samples( eval_data, norm)
+# ~ (x_eval, y_eval) = compute_samples( eval_data, norm)
 
 
 model = tf.keras.models.Sequential([
@@ -160,7 +188,8 @@ model.compile(optimizer='adam',
 
 history = model.fit(x_train, y_train,
                     epochs=EPOCH,
-                    validation_data=(x_eval, y_eval),
+                    # ~ validation_data=(x_eval, y_eval),
+                    validation_split=0.1,
                     shuffle=True
                     )
 

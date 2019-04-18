@@ -31,7 +31,7 @@ os.environ["CUDA_VISIBLE_DEVICES"] = ''
 #
 
 NUM_CPU = 1
-NB_EPOCHS = 20
+NB_EPOCHS = 5
 NB_GOALS = 4
 
 
@@ -189,23 +189,23 @@ def launch(env, trial_id, n_epochs, num_cpu, seed, replay_strategy, policy_save_
     for name in ['T', 'rollout_batch_size', 'gamma', 'noise_eps', 'random_eps']:
         rollout_params[name] = params[name]
         eval_params[name] = params[name]
-    eval_params['rollout_batch_size'] = 10
+    eval_params['rollout_batch_size'] = 2
     
     """ Replay Buffer for training the model"""
     input_shapes = dims_to_shapes(dims.copy())
     buffer_shapes = {key: (50 if key != 'o' else 51, *input_shapes[key]) for key, val in input_shapes.items()}
     buffer_shapes['g'] = (buffer_shapes['g'][0], dims['g'])
-
     buffer_size = (params_for_model['_buffer_size'] // params_for_model['rollout_batch_size']) * params_for_model['rollout_batch_size']
     model_buffer = ReplayBuffer(buffer_shapes, buffer_size, 50, None)
-        
+    
+    """ Rollout workers """
     env_worker = RolloutWorker(params['make_env'], policy, dims, logger,  nb_goals, **rollout_params)
     env_worker.seed(rank_seed)
 
     model_worker = RolloutWorker(params_for_model['make_env'], policy, dims, logger,  nb_goals, **rollout_params)
     model_worker.seed(rank_seed*100)
 
-    evaluator = RolloutWorker(params_for_eval['make_env'], policy, dims, logger, nb_goals,  **eval_params)
+    evaluator = RolloutWorker(params_for_eval['make_env'], policy, dims, logger, nb_goals, eval_env=model_worker.envs[0] , **eval_params)
     evaluator.seed(rank_seed * 10)
 
     train(logdir=logdir, policy=policy, env_worker=env_worker, model_worker=model_worker,  evaluator=evaluator,

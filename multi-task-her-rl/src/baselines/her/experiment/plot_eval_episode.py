@@ -37,7 +37,8 @@ def plot_episode(data,epoch, logdir):
     fig,axarr = plt.subplots(1,1,figsize=FIGSIZE)
     for j in range(n_goals):
         [episode,rew] = data[epoch][j]
-        for i in range(len(episode)):
+
+        for i in range(len(episode['o'])):
             obs = episode['o'][i]
             plt.scatter( obs[0,0],obs[0,1], c='b')
             if i ==0:
@@ -47,8 +48,8 @@ def plot_episode(data,epoch, logdir):
             plt.plot(obs[:,4],obs[:,3], ls=[':','-.'][rew[0]], lw=LW, c=colors[j])
 
     plt.legend()
-    plt.xlim((1.5,0))
-    plt.ylim((1,1.6))
+    # ~ plt.xlim((1.5,0))
+    # ~ plt.ylim((1,1.6))
     plt.title("Epoch "+str(epoch))
     # ~ plt.show()
     with open(os.path.join(logdir, "Epoch_"+str(epoch)+".png"), "bw") as f:
