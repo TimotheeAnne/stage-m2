@@ -33,9 +33,9 @@ colors = matlab_colors2
 
 
 # ~ folder_path = '/home/tim/Documents/stage-m2/multi-task-her-rl/src/data/myMultiTaskFetchArmNLP-v0/'
-folder_path = '/home/tim/Documents/stage-m2/multi-task-her-rl/src/data/MultiTaskFetchArmNLP1-v0/'
-# ~ folder_path = '/home/tim/Documents/stage-m2/multi-task-her-rl/src/data/from_remote/'
-trials = ['8900'] #list(range(30,40))#
+# ~ folder_path = '/home/tim/Documents/stage-m2/multi-task-her-rl/src/data/MultiTaskFetchArmNLP1-v0/'
+folder_path = '/home/tim/Documents/stage-m2/multi-task-her-rl/src/data/from_remote/'
+trials = ['800'] #list(range(30,40))#
 
 track_time = False
 live_plot = False
@@ -72,7 +72,7 @@ for trial in trials:
     n_eps = n_cpu * rollout_batch_size * n_cycles
     episodes = np.arange(n_eps, n_epochs * n_eps + 1, n_eps)
     episodes = episodes / 1000
-
+    print(params)
     task_success_rates = np.zeros([n_points, nb_instr])
     learning_progress = np.zeros([n_points, nb_instr])
     competence = np.zeros([n_points, nb_instr])
