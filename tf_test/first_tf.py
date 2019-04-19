@@ -14,13 +14,16 @@ FIGSIZE = (15,9)
 # ~ training_data = "./data/transition_multiTask_1_train.pk"
 # ~ eval_data ="./data/transition_multiTask_1_eval.pk"
 
-
-training_data = "/home/tim/Documents/stage-m2/tf_test/data/random.pk"
-eval_data ="/home/tim/Documents/stage-m2/multi-task-her-rl/src/data/MultiTaskFetchArmNLP1-v0/11900/eval_episodes.pk"
+training_data = "/home/tim/Documents/stage-m2/multi-task-her-rl/src/data/MultiTaskFetchArmNLP1-v0/16700/train_episodes17.pk"
+# ~ eval_data ="/home/tim/Documents/stage-m2/multi-task-her-rl/src/data/MultiTaskFetchArmNLP1-v0/16700/train_episodes0.pk"
 
 timestamp = datetime.datetime.now()
 logdir = './log/'+str(timestamp)
 os.makedirs(logdir)
+
+REG = 0.000
+INPUT_DIM = 29
+EPOCH = 100
 
 
 class Normalization:
@@ -56,12 +59,8 @@ class Normalization:
         print( "out mean", self.outputs_mean)
         print( "out std", self.outputs_std)
 
-REG = 0.0005
-INPUT_DIM = 29
-EPOCH = 10
 
 norm = Normalization()
-
 
 
 def plot_MSE( data):
@@ -101,7 +100,7 @@ def compute_samples(data,norm):
     return (norm.normalize_inputs(np.array(Inputs)),norm.normalize_outputs(np.array(Targets)))
 
 
-def evaluation(model, norm, data_type="eval"):
+def evaluation(model, norm, data_type="eval", epoch='final'):
     print("*** Prediction evaluation: "+data_type)
     if data_type == "eval":
         f = open(eval_data , 'rb')
@@ -125,6 +124,7 @@ def evaluation(model, norm, data_type="eval"):
     true_traj = np.array(true_traj)
     pred = []
     error_traj = []
+    confusion_matrix = np.zeros((2,2))
     print("Trajectory")
     for j in tqdm(range(len(true_traj))):
         obs = [true_traj[j][0][:25]]
@@ -138,7 +138,20 @@ def evaluation(model, norm, data_type="eval"):
             obs.append(norm.denormalize_outputs(model.predict(inputs)[0])+obs[-1])
         pred.append(obs)
         error_traj.append( np.linalg.norm(obs-np.array(true_traj[j,:,:25])))
-
+        ''' confusion matrice on cube reward '''
+        t_d_x = true_traj[j,-1,3]-true_traj[j,0,3]
+        t_d_y = true_traj[j,-1,4]-true_traj[j,0,4]
+        d_x = pred[j][-1][3]-pred[j][0][3]
+        d_y = pred[j][-1][4]-pred[j][0][4]
+        
+        t_l,l = t_d_x > 0.1, d_x > 0.1
+        t_r,r = t_d_x < -0.1, d_x < -0.1
+        t_f,f = t_d_y > 0.1, d_y > 0.1
+        t_c,c = t_d_y < -0.1, d_y < -0.1
+        
+        for (t,m) in [(t_l,l),(t_r,r),(t_f,f),(t_c,c)]:
+            confusion_matrix[int(t)][int(m)] += 1
+    print( 'confusion matrix', confusion_matrix)
     pred_traj = np.array(pred)
     
     print("Transition")
@@ -154,9 +167,14 @@ def evaluation(model, norm, data_type="eval"):
     pred_trans = np.array(pred)
     
 
-    filename = logdir+"/"+data_type+".pk"
+    filename = logdir+"/"+data_type+str(epoch)+".pk"
     f = open(filename,'bw')
     pickle.dump((pred_traj,pred_trans,true_traj,error_traj,error_trans),f)
+    f.close()
+    
+    filename = logdir+"/confusion_matrix"+str(epoch)+".pk"
+    f = open(filename,'bw')
+    pickle.dump(confusion_matrix,f)
     f.close()
 
 
@@ -186,13 +204,15 @@ model.compile(optimizer='adam',
               metrics=['mean_squared_error']
               )
 
-history = model.fit(x_train, y_train,
-                    epochs=EPOCH,
-                    # ~ validation_data=(x_eval, y_eval),
-                    validation_split=0.1,
-                    shuffle=True
-                    )
-
+for epoch in range(EPOCH):
+    history = model.fit(x_train, y_train,
+                        epochs=5,
+                        # ~ validation_data=(x_eval, y_eval),
+                        validation_split=0.1,
+                        shuffle=True
+                        )
+    evaluation(model,norm, "training", epoch=epoch)
+    
 """ Saving """
 model.save_weights(logdir+'/model.h5')
 with open(os.path.join(logdir, "config.txt"), "w") as f:
@@ -204,5 +224,5 @@ norm.save()
 """ Evaluation """
 data = history.history
 plot_MSE(data)
-evaluation(model,norm, "eval")
+# ~ evaluation(model,norm, "eval")
 evaluation(model,norm, "training")

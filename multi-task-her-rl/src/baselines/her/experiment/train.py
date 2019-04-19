@@ -67,8 +67,7 @@ def train(policy, env_worker, model_worker, evaluator, reward_function, model_bu
 
         """ Training the model"""
         samples = model_buffer.sample_transition_for_model(n_collect)
-        model_worker.envs[0].train(samples)
-        
+        model_worker.envs[0].train(samples, logger.get_dir())
         """ Training DDPG on the model """
         model_worker.clear_history()
 

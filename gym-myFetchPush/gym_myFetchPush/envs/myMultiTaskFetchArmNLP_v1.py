@@ -92,7 +92,7 @@ class MyMultiTaskFetchArmNLP_v1(gym.Env):
         self.norm = Normalization()
         self.model = self.nn_constructor(self.model_dir)
         self.EPOCH = 100
-
+        self.iteration = 0
 
     def nn_constructor(self,model_dir):
         """ Load BNN """
@@ -119,10 +119,12 @@ class MyMultiTaskFetchArmNLP_v1(gym.Env):
         self.weight_init = model.get_weights()
         return model
 
-    def train(self, Episodes):
+    def train(self, Episodes, logdir=None):
         # ~ self.model.set_weights(self.weight_init)
-        # ~ with open("/home/tim/Documents/stage-m2/tf_test/data/random.pk", "br") as f:
-            # ~ Episodes = pickle.load(f)
+        if not logdir is None:
+            with open(os.path.join(logdir, 'train_episodes'+str(self.iteration)+'.pk'), 'ba') as f:
+                pickle.dump(Episodes, f)
+        self.iteration += 1
         (x_train, y_train) = compute_samples(Episodes, self.norm)
         self.model.fit(x_train, y_train, epochs=self.EPOCH,shuffle=True, verbose=False)
 
