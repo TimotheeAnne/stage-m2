@@ -1,7 +1,7 @@
 import threading
 from collections import deque
 import numpy as np
-
+import random 
 
 
 class ReplayBuffer:
@@ -26,6 +26,8 @@ class ReplayBuffer:
 
         self.goals_indices = []
         self.discovered_goals_ids = []
+        self.moving_cube = []
+        self.fixed_cube = []
 
         # memory management
         self.current_size = 0
@@ -58,27 +60,28 @@ class ReplayBuffer:
 
         return transitions, ratio_positive_rewards, replay_proba
 
+
     def sample_transition_for_model(self, batch_size):
-        ind = np.random.randint(self.current_size, size=batch_size)
+        n_moving_cube =  len(self.moving_cube)
+        n_fixed_cube = min(n_moving_cube//2, self.current_size)
+        ind = random.sample(self.moving_cube, n_moving_cube)+random.sample(self.fixed_cube, n_fixed_cube)
+        print("moving_cube episode", n_moving_cube, n_moving_cube/(n_moving_cube+n_fixed_cube))
+        # ~ ind = range(self.current_size-batch_size, self.current_size)
         transitions = dict()
         for key in ['o', 'u']:
             transitions[key] = self.buffers[key][ind] 
-        transitions['o_2'] = self.buffers['o'][ind, 1:, :]
-        
         return transitions
-    
+
+
     def sample_transition_for_normalization(self, batch_size):
-        
         ind = np.random.randint(self.n_transitions_stored, size=batch_size)
-        
         transitions = dict()
-        
         for key in ['o', 'g']:
             transitions[key] = self.buffers[key][ind]
         transitions['o_2'] = self.buffers['o'][ind, 1:, :]
-        
         return transitions
-        
+
+
     def store_episode(self, episode_batch, goals_reached_ids):
         """episode_batch: array(batch_size x (T or T+1) x dim_key)
         """
@@ -100,17 +103,27 @@ class ReplayBuffer:
                         if len(goal_buffer_ids) > 0:
                             if idxs[i] == goal_buffer_ids[0]:
                                 goal_buffer_ids.popleft()
+                                if idxs[i] in self.moving_cube:
+                                    self.moving_cube.remove(idxs[i])
+                                else:
+                                    self.fixed_cube.remove(idxs[i])
                 # append new goal indices
                 for reached_id in goals_reached_ids[i]:
                     ind_list = self.discovered_goals_ids.index(reached_id)
                     self.goals_indices[ind_list].append(idxs[i])
-
+                if np.linalg.norm(episode_batch['o'][i][-1][28:31]) > 0.001:
+                    self.moving_cube.append(idxs[i])
+                else:
+                    self.fixed_cube.append(idxs[i])
+                
             # load inputs into buffers
             for key in self.buffers.keys():
                 self.buffers[key][idxs] = episode_batch[key]
 
             self.n_transitions_stored += batch_size * self.T
-
+        
+        
+        
     def get_current_episode_size(self):
         with self.lock:
             return self.current_size

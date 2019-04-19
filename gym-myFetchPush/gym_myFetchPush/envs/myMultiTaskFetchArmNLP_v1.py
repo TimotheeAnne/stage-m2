@@ -53,12 +53,16 @@ class Normalization:
 def compute_samples(Episodes,norm):
     Inputs = []
     Targets = []
+    moving_cube = 0
     for j in range(len(Episodes['o'])):
         for t in range(50):
             inputs = np.concatenate((Episodes['o'][j][t][:25],Episodes['u'][j][t]))
             targets = Episodes['o'][j][t+1][:25]- Episodes['o'][j][t][:25]
             Inputs.append(inputs)
             Targets.append(targets)
+            if np.linalg.norm(targets[3:6]) > 0.001:
+                moving_cube += 1
+    print("moving cube transition: ", moving_cube, moving_cube/(50*j)) 
     norm.init(Inputs,Targets)
     # ~ norm.pretty_print()
     return (norm.normalize_inputs(np.array(Inputs)),norm.normalize_outputs(np.array(Targets)))
@@ -116,7 +120,7 @@ class MyMultiTaskFetchArmNLP_v1(gym.Env):
         return model
 
     def train(self, Episodes):
-        self.model.set_weights(self.weight_init)
+        # ~ self.model.set_weights(self.weight_init)
         # ~ with open("/home/tim/Documents/stage-m2/tf_test/data/random.pk", "br") as f:
             # ~ Episodes = pickle.load(f)
         (x_train, y_train) = compute_samples(Episodes, self.norm)

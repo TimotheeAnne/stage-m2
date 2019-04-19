@@ -31,8 +31,8 @@ os.environ["CUDA_VISIBLE_DEVICES"] = ''
 #
 
 NUM_CPU = 1
-NB_EPOCHS = 5
-NB_GOALS = 4
+NB_EPOCHS = 100
+NB_GOALS = 13
 
 
 def train(policy, env_worker, model_worker, evaluator, reward_function, model_buffer, n_collect,
@@ -59,15 +59,14 @@ def train(policy, env_worker, model_worker, evaluator, reward_function, model_bu
         """ Collecting Data for training the model """
         env_worker.clear_history()
 
-
-        for i_c in range(n_collect):
+        for i_c in my_tqdm(range(n_collect)):
             # interact with the environment
             episode, goals_reached_ids = env_worker.generate_rollouts()
             # save experience in memory
             model_buffer.store_episode(episode, goals_reached_ids)
 
         """ Training the model"""
-        samples = model_buffer.sample_transition_for_model(n_collect*(epoch+1))
+        samples = model_buffer.sample_transition_for_model(n_collect)
         model_worker.envs[0].train(samples)
         
         """ Training DDPG on the model """

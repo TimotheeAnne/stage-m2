@@ -6,24 +6,25 @@ import os
 FIGSIZE = (16,9)
 
 tasks = ['Move the gripper to the left', #0
-                'Move the gripper to the right', #1
-                'Move the gripper further', #2
-                'Move the gripper closer', #3
-                'Move the gripper higher', #4 
-                'Move the gripper lower', #5
-                'Move the gripper above the yellow object', #6
-                'Touch the yellow object from above', #7
-                'Throw the yellow object on the floor', #8
-                'Move the yellow object to the left', #9
-                'Move the yellow object to the right', #10
-                'Move the yellow object away', #11
-                'Move the yellow object closer', #12
-                'Lift the yellow object', #13
-                'Lift the yellow object higher', #14
-                'Lift the yellow object and put it on the left', #15 
-                'Lift the yellow object and put it on the right', #16
-                'Lift the yellow object and place it further', #17
-                 'Lift the yellow object and place it closer'] #18
+        'Move the gripper to the right', #1
+        'Move the gripper further', #2
+        'Move the gripper closer', #3
+        'Move the gripper higher', #4 
+        'Move the gripper lower', #5
+        'Move the gripper above the yellow object', #6
+        'Touch the yellow object from above', #7
+        'Throw the yellow object on the floor', #8
+        'Move the yellow object to the left', #9
+        'Move the yellow object to the right', #10
+        'Move the yellow object away', #11
+        'Move the yellow object closer', #12
+        
+        'Lift the yellow object', #13
+        'Lift the yellow object higher', #14
+        'Lift the yellow object and put it on the left', #15 
+        'Lift the yellow object and put it on the right', #16
+        'Lift the yellow object and place it further', #17
+        'Lift the yellow object and place it closer'] #18
                 
 colors = ['firebrick','forestgreen','steelblue','darkorchid',
           'red','limegreen','aqua','magenta',
