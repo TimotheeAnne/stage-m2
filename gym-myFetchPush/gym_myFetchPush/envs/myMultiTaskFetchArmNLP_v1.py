@@ -18,12 +18,24 @@ class Normalization:
         self.inputs_std = 1
         self.outputs_mean = 0
         self.outputs_std = 1
+        self.samples = 0
         
     def init(self,inputs,outputs):
-        self.inputs_mean = np.mean(inputs,axis=0)
-        self.inputs_std = np.std(inputs,axis=0)
-        self.outputs_mean = np.mean(outputs,axis=0)
-        self.outputs_std = np.std(outputs,axis=0)
+        if self.samples == 0:
+            self.inputs_mean = np.mean(inputs,axis=0)
+            self.inputs_std = np.std(inputs,axis=0)
+            self.outputs_mean = np.mean(outputs,axis=0)
+            self.outputs_std = np.std(outputs,axis=0)
+            self.samples = len(inputs)
+        else:
+            n_old_samples = self.samples
+            n_new_samples = len(inputs)
+            self.samples = n_old_samples + n_new_samples
+            alpha = n_old_samples/self.samples
+            self.inputs_mean = alpha * self.inputs_mean + (1-alpha) * np.mean(inputs,axis=0)
+            self.inputs_std = alpha * self.inputs_std + (1-alpha) * np.std(inputs,axis=0)
+            self.outputs_mean = alpha * self.outputs_mean + (1-alpha) * np.mean(outputs,axis=0)
+            self.outputs_std = alpha * self.outputs_std + (1-alpha) * np.std(outputs,axis=0)
         for i in range(len(self.inputs_std)):
             if self.inputs_std[i] == 0.:
                 self.inputs_std[i] = 1
@@ -96,7 +108,7 @@ class MyMultiTaskFetchArmNLP_v1(gym.Env):
 
     def nn_constructor(self,model_dir):
         """ Load BNN """
-        REG = 0.0005
+        REG = 0.000
         model = tf.keras.models.Sequential([
             tf.keras.layers.Dense(256, activation=tf.nn.relu, input_shape=[29], 
                         bias_initializer = tf.constant_initializer(value=0.),
