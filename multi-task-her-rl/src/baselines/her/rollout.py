@@ -58,7 +58,7 @@ class RolloutWorker:
         # ~ if self.eval:
             # one queue for each goal/instruction.
         self.returns_histories = [deque(maxlen=history_len) for _ in range(self.nb_goals)]
-
+        self.rewards_histories = np.zeros(self.nb_goals)
         self.rollout_batch_size = rollout_batch_size
 
         self.nb_cpu = MPI.COMM_WORLD.Get_size()
@@ -101,8 +101,6 @@ class RolloutWorker:
         """
         for i in range(self.rollout_batch_size):
             self.reset_rollout(i)
-
-
 
     def generate_rollouts(self, index=None):
         """Performs `rollout_batch_size` rollouts in parallel for time horizon `T` with the current
@@ -191,17 +189,16 @@ class RolloutWorker:
             all_goals_reached = self.oracle_reward_function.eval_all_goals_from_whole_episode(episode)
             self.compute_confusion_matrix_with_model(all_goals_reached)
 
-        else:        
-            goal_id = np.where( self.g[0] == 1.)[0][0]
-            returns = np.array(self.oracle_reward_function.eval_goal_from_episode(episode, goal_id=goal_id))
-            self.returns_histories[goal_id].append(returns.mean())
+        else:
             rewards = self.oracle_reward_function.eval_all_goals_from_episode(episode)
+
             goals_reached_ids = []
             for i in range(rewards.shape[0]):
                 goals_reached_ids.append([])
                 for j in range(rewards.shape[1]):
                     if rewards[i][j] == 1:
                         goals_reached_ids[i].append(j)
+                        self.rewards_histories[j] += 1
 
         # stats
         if self.compute_Q:
@@ -246,6 +243,7 @@ class RolloutWorker:
     def clear_history(self):
         """Clears all histories that are used for statistics
         """
+        self.rewards_histories = np.zeros(self.nb_goals)
         for return_hist in self.returns_histories:
             return_hist.clear()
         if self.eval:
@@ -270,9 +268,13 @@ class RolloutWorker:
         """Generates a dictionary that contains all collected statistics.
         """
         logs = []
-        if True: # self.eval:
+        if self.eval:
             for i in range(self.nb_goals):
                 logs+= [('success_goal_' + str(i), np.mean(self.returns_histories[i]))]
+        else :
+            for i in range(self.nb_goals):
+                logs+= [('success_goal_' + str(i), np.sum(self.rewards_histories[i]))]
+
         if self.eval:
             [TP, FP, TN, FN] = self.confusion_matrice
             logs+= [('count_TP', TP)]

@@ -45,11 +45,13 @@ class MyGridEnv(gym.Env):
         return self._observation.copy(), 0, False, {}
       
     def reset(self, obs=None):
-        # ~ self._observation[:4] = 2*np.random.random(4)-1
+        self._observation[:2] = np.array([0,0]) #2*np.random.random(2)-1
+        self._observation[2:4] = np.random.random(2)-0.5
         
-        # ~ while np.linalg.norm( self._observation[2:4] - self._observation[:2] ) < self._grap_dist:
-            # ~ self._observation[2:4] = 2*np.random.random(2)-1 
-        self._observation[:4] = np.array([0,0,1,1])
+        while np.linalg.norm( self._observation[2:4] - self._observation[:2] ) < self._grap_dist:
+            self._observation[2:4] = 2*np.random.random(2)-1 
+        
+        # ~ self._observation[:4] = np.array([0,0,1,1])
         
         self._observation[4] = 0
         
