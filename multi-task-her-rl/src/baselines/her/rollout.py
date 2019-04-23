@@ -50,6 +50,8 @@ class RolloutWorker:
 
         self.nb_goals = nb_goals
         self.n_episodes = 0
+        self.n_train_episodes = 0
+        
         self.g = np.empty((self.rollout_batch_size, self.dims['g']), np.float32)  # goals
         self.initial_o = np.empty((self.rollout_batch_size, self.dims['o']), np.float32)  # observations
 
@@ -118,8 +120,6 @@ class RolloutWorker:
         obs, acts, goals = [], [], []
         Qs = []
         timee = time.time()
-
-
 
         for t in range(self.T):
             policy_output = self.policy.get_actions(
@@ -204,7 +204,7 @@ class RolloutWorker:
         if self.compute_Q:
             self.Q_history.append(np.mean(Qs))
         self.n_episodes += self.rollout_batch_size
-
+        self.n_train_episodes += self.rollout_batch_size
         return convert_episode_to_batch_major(episode), goals_reached_ids
 
 
@@ -244,6 +244,7 @@ class RolloutWorker:
         """Clears all histories that are used for statistics
         """
         self.rewards_histories = np.zeros(self.nb_goals)
+        self.n_train_episodes = 0
         for return_hist in self.returns_histories:
             return_hist.clear()
         if self.eval:
@@ -273,7 +274,7 @@ class RolloutWorker:
                 logs+= [('success_goal_' + str(i), np.mean(self.returns_histories[i]))]
         else :
             for i in range(self.nb_goals):
-                logs+= [('success_goal_' + str(i), np.sum(self.rewards_histories[i]))]
+                logs+= [('success_goal_' + str(i), np.sum(self.rewards_histories[i])/self.n_train_episodes)]
 
         if self.eval:
             [TP, FP, TN, FN] = self.confusion_matrice
