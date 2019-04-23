@@ -24,6 +24,7 @@ import src.baselines.common.tf_util as U
 
 # Me
 import gym_myFetchPush
+import gym_myGridEnv
 from plot_eval_episode import plot_eval_episodes
 from src.baselines.her.replay_buffer import ReplayBuffer
 from src.baselines.her.ddpg import dims_to_shapes
@@ -31,8 +32,8 @@ os.environ["CUDA_VISIBLE_DEVICES"] = ''
 #
 
 NUM_CPU = 1
-NB_EPOCHS = 100
-NB_GOALS = 13
+NB_EPOCHS = 10
+NB_GOALS = 5
 
 
 def train(policy, env_worker, model_worker, evaluator, reward_function, model_buffer, n_collect,
@@ -56,18 +57,18 @@ def train(policy, env_worker, model_worker, evaluator, reward_function, model_bu
     for epoch in range(n_epochs):
 
         # train
-        """ Collecting Data for training the model """
-        env_worker.clear_history()
+        # ~ """ Collecting Data for training the model """
+        # ~ env_worker.clear_history()
 
-        for i_c in my_tqdm(range(n_collect)):
-            # interact with the environment
-            episode, goals_reached_ids = env_worker.generate_rollouts()
-            # save experience in memory
-            model_buffer.store_episode(episode, goals_reached_ids)
+        # ~ for i_c in my_tqdm(range(n_collect)):
+            # ~ # interact with the environment
+            # ~ episode, goals_reached_ids = env_worker.generate_rollouts()
+            # ~ # save experience in memory
+            # ~ model_buffer.store_episode(episode, goals_reached_ids)
 
-        """ Training the model"""
-        samples = model_buffer.sample_transition_for_model(n_collect)
-        model_worker.envs[0].train(samples, logger.get_dir())
+        # ~ """ Training the model"""
+        # ~ samples = model_buffer.sample_transition_for_model(n_collect)
+        # ~ model_worker.envs[0].train(samples, logger.get_dir())
         """ Training DDPG on the model """
         model_worker.clear_history()
 
@@ -154,12 +155,15 @@ def launch(env, trial_id, n_epochs, num_cpu, seed, replay_strategy, policy_save_
         config.log_params(params, logger=logger)
 
     """ for evaluation environment """
-    params_for_eval['env_name'] = 'MultiTaskFetchArmNLP1-v0'
+    # ~ params_for_eval['env_name'] = 'MultiTaskFetchArmNLP1-v0'
+    params_for_eval['env_name'] = 'myGridEnv-v0'
     params_for_eval = config.prepare_params(params_for_eval)
     
     """ for model environment """
-    params_for_model['env_name'] = 'myMultiTaskFetchArmNLP-v1'
+    # ~ params_for_model['env_name'] = 'myMultiTaskFetchArmNLP-v1'
     # ~ params_for_model['env_name'] = 'MultiTaskFetchArmNLP1-v0'
+    params_for_model['env_name'] = 'myGridEnv-v0'
+
     params_for_model = config.prepare_params(params_for_model)
 
     reward_function = OracleRewardFuntion(nb_goals)
@@ -214,7 +218,8 @@ def launch(env, trial_id, n_epochs, num_cpu, seed, replay_strategy, policy_save_
 
 
 # ~ env = "myMultiTaskFetchArmNLP-v0"
-env = "MultiTaskFetchArmNLP1-v0"
+# ~ env = "MultiTaskFetchArmNLP1-v0"
+env = "myGridEnv-v0"
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)

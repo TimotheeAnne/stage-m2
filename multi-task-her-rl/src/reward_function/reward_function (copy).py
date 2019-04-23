@@ -3,6 +3,9 @@ from mpi4py import MPI
 from .task_reward_functions import *
 
 
+
+
+
 def eucl_dist(pos1, pos2):
     return np.linalg.norm(pos1 - pos2, ord=2)
 
@@ -15,8 +18,16 @@ def oracle_reward_function_all(task_instr, state):
 
     rewards = - np.ones([state.shape[0], len(task_instr)])
     for i in range(state.shape[0]):
+
+        gripper_pos = state[i, :3]
+        yellow_cube_pos = state[i, 3:6]
+
+        half = state.shape[1] // 2
+        gripper_pos_0 = gripper_pos - state[i, half: half + 3]
+        yellow_cube_pos_0 = yellow_cube_pos - state[i, half + 3: half + 6]
+
         for j in range(len(task_instr)):
-            rewards[i, j] = task_instr[j](state[i])
+            rewards[i, j] = task_instr[j](gripper_pos, yellow_cube_pos, gripper_pos_0, yellow_cube_pos_0)
 
     return rewards
 
@@ -27,8 +38,18 @@ def oracle_reward_function(task_instr, state, goal_ids):
     rewards = - np.ones([state.shape[0]])
     for i in range(state.shape[0]):
 
-        rewards[i] = task_instr[goal_ids[i]](state[i])
+        gripper_pos = state[i, :3]
+        yellow_cube_pos = state[i, 3:6]
+
+        half = state.shape[1] // 2
+        gripper_pos_0 = gripper_pos - state[i, half: half + 3]
+        yellow_cube_pos_0 = yellow_cube_pos - state[i, half + 3: half + 6]
+
+        rewards[i] = task_instr[goal_ids[i]](gripper_pos, yellow_cube_pos, gripper_pos_0, yellow_cube_pos_0)
+
     return rewards
+
+
 
 
 class OracleRewardFuntion:
