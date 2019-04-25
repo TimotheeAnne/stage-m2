@@ -32,8 +32,8 @@ os.environ["CUDA_VISIBLE_DEVICES"] = ''
 #
 
 NUM_CPU = 1
-NB_EPOCHS = 10
-NB_GOALS = 5
+NB_EPOCHS = 20
+NB_GOALS = 35
 
 
 def train(policy, env_worker, model_worker, evaluator, reward_function, model_buffer, n_collect,
@@ -56,7 +56,7 @@ def train(policy, env_worker, model_worker, evaluator, reward_function, model_bu
     my_tqdm = (lambda x: x) if rank >0 else tqdm
     for epoch in range(n_epochs):
 
-        # train
+        # ~ # train
         # ~ """ Collecting Data for training the model """
         # ~ env_worker.clear_history()
 
@@ -67,7 +67,7 @@ def train(policy, env_worker, model_worker, evaluator, reward_function, model_bu
             # ~ model_buffer.store_episode(episode, goals_reached_ids)
 
         # ~ """ Training the model"""
-        # ~ samples = model_buffer.sample_transition_for_model(n_collect)
+        # ~ samples = model_buffer.sample_transition_for_model(n_collect*(epoch+1))
         # ~ model_worker.envs[0].train(samples, logger.get_dir())
         """ Training DDPG on the model """
         model_worker.clear_history()
@@ -95,8 +95,8 @@ def train(policy, env_worker, model_worker, evaluator, reward_function, model_bu
         best_success_rate, last_time = log(epoch, evaluator, model_worker, policy, best_success_rate, save_policies, best_policy_path, latest_policy_path,
             policy_save_interval, rank, periodic_policy_path, first_time, last_time)
     
-    if rank == 0:
-        plot_eval_episodes(logger.get_dir())
+    # ~ if rank == 0:
+        # ~ plot_eval_episodes(logger.get_dir())
         
 
 
@@ -156,13 +156,14 @@ def launch(env, trial_id, n_epochs, num_cpu, seed, replay_strategy, policy_save_
 
     """ for evaluation environment """
     # ~ params_for_eval['env_name'] = 'MultiTaskFetchArmNLP1-v0'
-    params_for_eval['env_name'] = 'myGridEnv-v0'
+    params_for_eval['env_name'] = 'ArmToolsToys-v0'
     params_for_eval = config.prepare_params(params_for_eval)
     
     """ for model environment """
     # ~ params_for_model['env_name'] = 'myMultiTaskFetchArmNLP-v1'
     # ~ params_for_model['env_name'] = 'MultiTaskFetchArmNLP1-v0'
-    params_for_model['env_name'] = 'myGridEnv-v0'
+    params_for_model['env_name'] = 'ArmToolsToys-v0'
+    # ~ params_for_model['env_name'] = 'myGridEnvModel-v0'
 
     params_for_model = config.prepare_params(params_for_model)
 
@@ -219,7 +220,7 @@ def launch(env, trial_id, n_epochs, num_cpu, seed, replay_strategy, policy_save_
 
 # ~ env = "myMultiTaskFetchArmNLP-v0"
 # ~ env = "MultiTaskFetchArmNLP1-v0"
-env = "myGridEnv-v0"
+env = "ArmToolsToys-v0"
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)

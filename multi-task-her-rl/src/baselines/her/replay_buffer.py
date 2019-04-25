@@ -62,12 +62,12 @@ class ReplayBuffer:
 
 
     def sample_transition_for_model(self, batch_size):
-        n_moving_cube =  len(self.moving_cube)
-        n_fixed_cube = max(n_moving_cube//3, min(len(self.fixed_cube),10))
+        # ~ n_moving_cube =  len(self.moving_cube)
+        # ~ n_fixed_cube = max(n_moving_cube//3, min(len(self.fixed_cube),10))
 
-        ind = random.sample(self.moving_cube, n_moving_cube)+random.sample(self.fixed_cube, n_fixed_cube)
-        print("moving_cube episode", n_moving_cube, n_moving_cube/(n_moving_cube+n_fixed_cube))
-        # ~ ind = range(self.current_size-batch_size, self.current_size)
+        # ~ ind = random.sample(self.moving_cube, n_moving_cube)+random.sample(self.fixed_cube, n_fixed_cube)
+        # ~ print("moving_cube episode", n_moving_cube, n_moving_cube/(n_moving_cube+n_fixed_cube))
+        ind = range(self.current_size-batch_size, self.current_size)
         transitions = dict()
         for key in ['o', 'u']:
             transitions[key] = self.buffers[key][ind] 

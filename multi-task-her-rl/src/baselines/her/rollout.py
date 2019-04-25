@@ -79,7 +79,8 @@ class RolloutWorker:
         and `g` arrays accordingly.
         """
         if self.eval and i == 1:
-                self.initial_o[i] = self.envs[i].reset( self.initial_o[0])
+            # ~ self.initial_o[i] = self.envs[i].reset( self.initial_o[0])
+            self.initial_o[i] = self.envs[i].reset()
         else:
             self.initial_o[i] = self.envs[i].reset()
         # sample all goals from the goal_sampler of rank 0 (the only that contains data)

@@ -7,16 +7,19 @@ def eucl_dist(pos1, pos2):
     return np.linalg.norm(pos1 - pos2, ord=2)
 
 def oracle_reward_function_all(task_instr, state):
-    # first 55 elements of state represent the state at time t
-    # last 55 elements of state represent the state à time t minus the initial state
+    # first 31 elements of state represent the state at time t
+    # last 31 elements of state represent the state à time t minus the initial state
 
     if state.ndim == 1:
         state = np.expand_dims(state, 0)
-
+    
+    obs_dims = len(state[0])
+    half = obs_dims // 2
+    
     rewards = - np.ones([state.shape[0], len(task_instr)])
     for i in range(state.shape[0]):
         for j in range(len(task_instr)):
-            rewards[i, j] = task_instr[j](state[i])
+            rewards[i, j] = task_instr[j](state[i][:half],state[i][half:] )
 
     return rewards
 
@@ -24,10 +27,13 @@ def oracle_reward_function(task_instr, state, goal_ids):
     if state.ndim == 1:
         state = np.expand_dims(state, 0)
 
+    obs_dims = len(state[0])
+    half = obs_dims // 2
+    
     rewards = - np.ones([state.shape[0]])
-    for i in range(state.shape[0]):
 
-        rewards[i] = task_instr[goal_ids[i]](state[i])
+    for i in range(state.shape[0]):
+        rewards[i] = task_instr[goal_ids[i]](state[i][:half],state[i][half:])
     return rewards
 
 
