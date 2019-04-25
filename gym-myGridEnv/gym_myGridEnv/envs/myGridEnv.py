@@ -18,7 +18,7 @@ class MyGridEnv(gym.Env):
         self._steps = 0
         self._n_timesteps = 50
         self._max_episode_steps = self._n_timesteps
-        self._grap_dist = 0.05
+        self._grap_dist = 1
         self.action_space = spaces.Box(-1., 1., shape=(2,), dtype='float32')
         self.observation_space = spaces.Box(-np.inf, np.inf, shape=(9,), dtype='float32')
 
@@ -46,10 +46,10 @@ class MyGridEnv(gym.Env):
       
     def reset(self, obs=None):
         self._observation[:2] = np.array([0,0]) #2*np.random.random(2)-1
-        self._observation[2:4] = np.random.random(2)-0.5
+        self._observation[2:4] = 6*np.random.random(2)-3
         
         while np.linalg.norm( self._observation[2:4] - self._observation[:2] ) < self._grap_dist:
-            self._observation[2:4] = 2*np.random.random(2)-1 
+            self._observation[2:4] = 6*np.random.random(2)-3
         
         # ~ self._observation[:4] = np.array([0,0,1,1])
         

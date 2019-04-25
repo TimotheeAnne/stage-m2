@@ -14,16 +14,23 @@ FIGSIZE = (15,9)
 # ~ training_data = "./data/transition_multiTask_1_train.pk"
 # ~ eval_data ="./data/transition_multiTask_1_eval.pk"
 
-training_data = "/home/tim/Documents/stage-m2/multi-task-her-rl/src/data/MultiTaskFetchArmNLP1-v0/16700/train_episodes17.pk"
-# ~ eval_data ="/home/tim/Documents/stage-m2/multi-task-her-rl/src/data/MultiTaskFetchArmNLP1-v0/16700/train_episodes0.pk"
+# ~ training_data = "/home/tim/Documents/stage-m2/multi-task-her-rl/src/data/MultiTaskFetchArmNLP1-v0/16700/train_episodes32.pk"
+
+# ~ training_data = "/home/tim/Documents/stage-m2/tf_test/data/transition_multi25_firstrandom_train.pk"
+# ~ eval_data = "/home/tim/Documents/stage-m2/tf_test/data/transition_multi25_firstrandom_eval.pk"
+
+training_data = "/home/tim/Documents/stage-m2/tf_test/data/multi25_50percent_train.pk"
+eval_data = "/home/tim/Documents/stage-m2/tf_test/data/multi25_50percent_eval.pk"
+training_transition = "/home/tim/Documents/stage-m2/tf_test/data/multi25_50percent_train_transition.pk"
+
 
 timestamp = datetime.datetime.now()
 logdir = './log/'+str(timestamp)
 os.makedirs(logdir)
 
-REG = 0.000
+REG = 0.0005
 INPUT_DIM = 29
-EPOCH = 100
+EPOCH = 20
 
 
 class Normalization:
@@ -52,7 +59,11 @@ class Normalization:
         
     def denormalize_outputs(self,y):
         return (y * self.outputs_std) + self.outputs_mean
-        
+
+    def load(self, model_dir):
+        with open(os.path.join(model_dir, "norm.pk"), "br") as f:
+            [self.inputs_mean,self.inputs_std,self.outputs_mean, self.outputs_std] = pickle.load(f)
+
     def pretty_print(self):
         print( "in mean", self.inputs_mean)
         print( "in std", self.inputs_std)
@@ -86,17 +97,29 @@ def compute_samples(data,norm):
         
     if type(data) is dict:
         true_traj,Acs = data['o'], data['u']
+    elif type(data) is tuple:
+        (Inputs,Targets) = data
+        norm.init(Inputs,Targets)
+        return (norm.normalize_inputs(np.array(Inputs)),norm.normalize_outputs(np.array(Targets)))
     else:
         [true_traj,Acs] = data
         
+    moving_cube = 0
     for j in range(len(true_traj)):
         for t in range(50):
             inputs = np.concatenate((true_traj[j][t][:25],Acs[j][t]))
             targets = true_traj[j][t+1][:25] - true_traj[j][t][:25]
             Inputs.append(inputs)
             Targets.append(targets)
+            if np.linalg.norm(targets[3:6]) > 0.001:
+                moving_cube += 1
+    print( 'moving cube transtions', moving_cube, moving_cube/(50*j))
     norm.init(Inputs,Targets)
     # ~ norm.pretty_print()
+    samples = list(zip( Inputs,Targets))
+    np.random.shuffle( samples)
+    Inputs, Targets = zip( *samples)
+    
     return (norm.normalize_inputs(np.array(Inputs)),norm.normalize_outputs(np.array(Targets)))
 
 
@@ -109,9 +132,7 @@ def evaluation(model, norm, data_type="eval", epoch='final'):
     
     data =  pickle.load(f)
     f.close()
-    
 
-    
     if type(data) is dict:
         true_traj, Acs = data['o'], data['u']
     else:
@@ -157,13 +178,13 @@ def evaluation(model, norm, data_type="eval", epoch='final'):
     print("Transition")
     pred = []
     error_trans = []
-    for j in tqdm(range(len(true_traj))):
-        obs = [true_traj[j][0][:25]]
-        for t in range(50):
-            inputs = np.array([norm.normalize_inputs(np.concatenate((true_traj[j][t][:25],Acs[j][t])))])
-            obs.append(norm.denormalize_outputs(model.predict(inputs)[0])+true_traj[j][t][:25])
-        pred.append(obs)
-        error_trans.append( np.linalg.norm(obs-np.array(true_traj[j,:,:25])))
+    # ~ for j in tqdm(range(len(true_traj))):
+        # ~ obs = [true_traj[j][0][:25]]
+        # ~ for t in range(50):
+            # ~ inputs = np.array([norm.normalize_inputs(np.concatenate((true_traj[j][t][:25],Acs[j][t])))])
+            # ~ obs.append(norm.denormalize_outputs(model.predict(inputs)[0])+true_traj[j][t][:25])
+        # ~ pred.append(obs)
+        # ~ error_trans.append( np.linalg.norm(obs-np.array(true_traj[j,:,:25])))
     pred_trans = np.array(pred)
     
 
@@ -178,20 +199,20 @@ def evaluation(model, norm, data_type="eval", epoch='final'):
     f.close()
 
 
-(x_train, y_train) = compute_samples( training_data, norm)
-# ~ (x_eval, y_eval) = compute_samples( eval_data, norm)
+(x_train, y_train) = compute_samples( training_transition, norm)
+(x_eval, y_eval) = compute_samples( eval_data, norm)
 
 
 model = tf.keras.models.Sequential([
-    tf.keras.layers.Dense(256, activation=tf.nn.relu, input_shape=[INPUT_DIM], 
+    tf.keras.layers.Dense(512, activation=tf.nn.relu, input_shape=[INPUT_DIM], 
                 bias_initializer = tf.constant_initializer(value=0.),
                 kernel_initializer = tf.contrib.layers.xavier_initializer(),
                 kernel_regularizer = tf.keras.regularizers.l2(l=REG)),
-    tf.keras.layers.Dense(256, activation=tf.nn.relu,
+    tf.keras.layers.Dense(512, activation=tf.nn.relu,
                 bias_initializer = tf.constant_initializer(value=0.),
                 kernel_initializer = tf.contrib.layers.xavier_initializer(),
                 kernel_regularizer = tf.keras.regularizers.l2(l=REG)),
-    tf.keras.layers.Dense(256, activation=tf.nn.relu,
+    tf.keras.layers.Dense(512, activation=tf.nn.relu,
                 bias_initializer = tf.constant_initializer(value=0.),
                 kernel_initializer = tf.contrib.layers.xavier_initializer(),
                 kernel_regularizer = tf.keras.regularizers.l2(l=REG)),
@@ -204,14 +225,25 @@ model.compile(optimizer='adam',
               metrics=['mean_squared_error']
               )
 
+# ~ model_dir = "/home/tim/Documents/stage-m2/gym-myFetchPush/log/tf25/"
+# ~ model.load_weights(model_dir+'model.h5')
+# ~ norm.load(model_dir)
+
+# ~ history = model.fit(x_train, y_train,
+                        # ~ epochs=EPOCH,
+                        # ~ #validation_split=0.1,
+                        # ~ validation_data = (x_eval,y_eval),
+                        # ~ shuffle=True
+                        # ~ )
+
 for epoch in range(EPOCH):
     history = model.fit(x_train, y_train,
                         epochs=5,
-                        # ~ validation_data=(x_eval, y_eval),
-                        validation_split=0.1,
+                        #validation_split=0.1,
+                        validation_data = (x_eval,y_eval),
                         shuffle=True
                         )
-    evaluation(model,norm, "training", epoch=epoch)
+    evaluation(model,norm, "eval", epoch=epoch)
     
 """ Saving """
 model.save_weights(logdir+'/model.h5')
@@ -224,5 +256,5 @@ norm.save()
 """ Evaluation """
 data = history.history
 plot_MSE(data)
-# ~ evaluation(model,norm, "eval")
+evaluation(model,norm, "eval")
 evaluation(model,norm, "training")

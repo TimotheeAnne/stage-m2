@@ -11,7 +11,7 @@ instructions = ['Move the gripper to the left', #0
 # for i in range(len(instructions)):
 #     print('Instruction', str(i), ':', instructions[i])
 
-epsilon = 0.05
+epsilon = 1
 
 def eucl_dist(pos1, pos2):
     return np.linalg.norm(pos1 - pos2, ord=2)
