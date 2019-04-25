@@ -36,8 +36,8 @@ import numpy as np
 
 instructions = ['Move the Hand to the left', #0
                 'Move the Hand to the right',  #1
-                'Move the Hand further', #2
-                'Move the Hand closer', #3
+                'Grasp Stick1', #2
+                'Grasp Stick2', #3
                 
                 'Move the Stick1 to the left', #4
                 'Move the Stick1 to the right',  #5
@@ -91,7 +91,7 @@ epsilon = 0.05
 def eucl_dist(pos1, pos2):
     return np.linalg.norm(pos1 - pos2, ord=2)
 
-""" Hand Pos 0-3"""
+""" Hand Pos 0-1"""
 def r0(obs,d_obs):
     # Move the gripper to left
     if d_obs[0] >  2 * epsilon:
@@ -107,25 +107,22 @@ def r1(obs,d_obs):
     else:
         return -1
 
-
+""" Grasp stick1 """
 def r2(obs,d_obs):
-    # Move the gripper away
-    if d_obs[1] > 2 * epsilon:
+    if np.linalg.norm(d_obs[3:5]) > 0 :
         return 0
     else:
         return -1
 
-
+""" Grasp stick2 """
 def r3(obs,d_obs):
-    # Move the gripper closer
-    if d_obs[1] < - 2 * epsilon:
+    if np.linalg.norm(d_obs[5:7]) > 0 ::
         return 0
     else:
         return -1
 
 """ Stick1 end pos 4-7"""
 def r4(obs,d_obs):
-    # Move the gripper to left
     if d_obs[3] >  2 * epsilon:
         return 0
     else:
