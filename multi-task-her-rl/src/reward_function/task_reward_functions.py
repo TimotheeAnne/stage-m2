@@ -116,7 +116,7 @@ def r2(obs,d_obs):
 
 """ Grasp stick2 """
 def r3(obs,d_obs):
-    if np.linalg.norm(d_obs[5:7]) > 0 ::
+    if np.linalg.norm(d_obs[5:7]) > 0 :
         return 0
     else:
         return -1
