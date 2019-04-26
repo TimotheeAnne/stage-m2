@@ -44,12 +44,12 @@ class ArmToolsToysV1(gym.Env):
         self.stick2_rest_state = [0.75, 0.25, 0.25]
         
         # Magnet1
-        self.magnet1_tolsq = 0.03 ** 2.
+        self.magnet1_tolsq = 0.1 ** 2.
         self.magnet1_rest_state = [-0.3, 1.1]
 
         
         # Scratch1
-        self.scratch1_tolsq = 0.03 ** 2.
+        self.scratch1_tolsq = 0.1 ** 2.
         self.scratch1_rest_state = [0.3, 1.1]
 
         
