@@ -33,7 +33,7 @@ os.environ["CUDA_VISIBLE_DEVICES"] = ''
 
 NUM_CPU = 1
 NB_EPOCHS = 20
-NB_GOALS = 35
+NB_GOALS = 22
 
 
 def train(policy, env_worker, model_worker, evaluator, reward_function, model_buffer, n_collect,
@@ -156,13 +156,13 @@ def launch(env, trial_id, n_epochs, num_cpu, seed, replay_strategy, policy_save_
 
     """ for evaluation environment """
     # ~ params_for_eval['env_name'] = 'MultiTaskFetchArmNLP1-v0'
-    params_for_eval['env_name'] = 'ArmToolsToys-v0'
+    params_for_eval['env_name'] = 'ArmToolsToys-v1'
     params_for_eval = config.prepare_params(params_for_eval)
     
     """ for model environment """
     # ~ params_for_model['env_name'] = 'myMultiTaskFetchArmNLP-v1'
     # ~ params_for_model['env_name'] = 'MultiTaskFetchArmNLP1-v0'
-    params_for_model['env_name'] = 'ArmToolsToys-v0'
+    params_for_model['env_name'] = 'ArmToolsToys-v1'
     # ~ params_for_model['env_name'] = 'myGridEnvModel-v0'
 
     params_for_model = config.prepare_params(params_for_model)
@@ -220,7 +220,7 @@ def launch(env, trial_id, n_epochs, num_cpu, seed, replay_strategy, policy_save_
 
 # ~ env = "myMultiTaskFetchArmNLP-v0"
 # ~ env = "MultiTaskFetchArmNLP1-v0"
-env = "ArmToolsToys-v0"
+env = "ArmToolsToys-v1"
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
