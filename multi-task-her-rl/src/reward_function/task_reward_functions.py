@@ -8,14 +8,18 @@ observation =
 3 hand_pos[0], 
 4 hand_pos[1],
 5 gripper,
-6 stick1_end_pos[0],
-7 stick1_end_pos[1],
-8 stick2_end_pos[0],
-9 stick2_end_pos[1],
-10 magnet1_pos[0],
-11 magnet1_pos[1],
-12 scratch1_pos[0],
-13 scratch1_pos[1],
+6 stick1_handle_pos[0],
+7 stick1_handle_pos[1],
+8 stick1_end_pos[0],
+9 stick1_end_pos[1],
+10 stick2_handle_pos[0],
+11 stick2_handle_pos[1],
+12 stick2_end_pos[0],
+13 stick2_end_pos[1],
+14 magnet1_pos[0],
+15 magnet1_pos[1],
+16 scratch1_pos[0],
+17 scratch1_pos[1],
 """          
 
 instructions = ['Move the Hand to the left', #0
@@ -97,7 +101,7 @@ def r4(obs,d_obs):
 
 """ Grasped stick2 """
 def r5(obs,d_obs):
-    if np.linalg.norm(d_obs[8:10]) > 0 :
+    if np.linalg.norm(d_obs[10:12]) > 0 :
         return 0
     else:
         return -1
@@ -105,7 +109,7 @@ def r5(obs,d_obs):
 """ Stick1 end pos 6-9"""
 def r6(obs,d_obs):
     # Move stick1 to the right
-    if d_obs[6] >  2 * epsilon:
+    if d_obs[8] >  2 * epsilon:
         return 0
     else:
         return -1
@@ -113,7 +117,7 @@ def r6(obs,d_obs):
 
 def r7(obs,d_obs):
     # Move stick1 to the left
-    if d_obs[6] < - 2 * epsilon:
+    if d_obs[8] < - 2 * epsilon:
         return 0
     else:
         return -1
@@ -121,7 +125,7 @@ def r7(obs,d_obs):
 
 def r8(obs,d_obs):
     # Move the stick1 away
-    if d_obs[7] > 2 * epsilon:
+    if d_obs[9] > 2 * epsilon:
         return 0
     else:
         return -1
@@ -129,7 +133,7 @@ def r8(obs,d_obs):
 
 def r9(obs,d_obs):
     # Move the stick1 closer
-    if d_obs[7] < - 2 * epsilon:
+    if d_obs[9] < - 2 * epsilon:
         return 0
     else:
         return -1
@@ -137,7 +141,7 @@ def r9(obs,d_obs):
 """ Stick2 end pos 10-13"""
 def r10(obs,d_obs):
     # Move stick2 to right
-    if d_obs[8] >  2 * epsilon:
+    if d_obs[12] >  2 * epsilon:
         return 0
     else:
         return -1
@@ -145,7 +149,7 @@ def r10(obs,d_obs):
 
 def r11(obs,d_obs):
     # Move stick2 to left
-    if d_obs[8] < - 2 * epsilon:
+    if d_obs[12] < - 2 * epsilon:
         return 0
     else:
         return -1
@@ -153,7 +157,7 @@ def r11(obs,d_obs):
 
 def r12(obs,d_obs):
     # Move stick2 away
-    if d_obs[9] > 2 * epsilon:
+    if d_obs[13] > 2 * epsilon:
         return 0
     else:
         return -1
@@ -161,7 +165,7 @@ def r12(obs,d_obs):
 
 def r13(obs,d_obs):
     # Move stick2 closer
-    if d_obs[9] < - 2 * epsilon:
+    if d_obs[13] < - 2 * epsilon:
         return 0
     else:
         return -1
@@ -170,7 +174,7 @@ def r13(obs,d_obs):
 """ Magnet1 pos 14-17"""
 def r14(obs,d_obs):
     # Move the gripper to right
-    if d_obs[10] >  2 * epsilon:
+    if d_obs[14] >  2 * epsilon:
         return 0
     else:
         return -1
@@ -178,7 +182,7 @@ def r14(obs,d_obs):
 
 def r15(obs,d_obs):
     # Move the gripper to left
-    if d_obs[10] < - 2 * epsilon:
+    if d_obs[14] < - 2 * epsilon:
         return 0
     else:
         return -1
@@ -186,7 +190,7 @@ def r15(obs,d_obs):
 
 def r16(obs,d_obs):
     # Move the gripper away
-    if d_obs[11] > 2 * epsilon:
+    if d_obs[15] > 2 * epsilon:
         return 0
     else:
         return -1
@@ -194,7 +198,7 @@ def r16(obs,d_obs):
 
 def r17(obs,d_obs):
     # Move the gripper closer
-    if d_obs[11] < - 2 * epsilon:
+    if d_obs[15] < - 2 * epsilon:
         return 0
     else:
         return -1
@@ -202,7 +206,7 @@ def r17(obs,d_obs):
 """ Magnet2 pos 18-21"""
 def r18(obs,d_obs):
     # Move the gripper to right
-    if d_obs[12] >  2 * epsilon:
+    if d_obs[16] >  2 * epsilon:
         return 0
     else:
         return -1
@@ -210,7 +214,7 @@ def r18(obs,d_obs):
 
 def r19(obs,d_obs):
     # Move the gripper to the left
-    if d_obs[12] < - 2 * epsilon:
+    if d_obs[16] < - 2 * epsilon:
         return 0
     else:
         return -1
@@ -218,7 +222,7 @@ def r19(obs,d_obs):
 
 def r20(obs,d_obs):
     # Move the gripper away
-    if d_obs[13] > 2 * epsilon:
+    if d_obs[17] > 2 * epsilon:
         return 0
     else:
         return -1
@@ -226,7 +230,7 @@ def r20(obs,d_obs):
 
 def r21(obs,d_obs):
     # Move the gripper closer
-    if d_obs[13] < - 2 * epsilon:
+    if d_obs[17] < - 2 * epsilon:
         return 0
     else:
         return -1
