@@ -26,8 +26,9 @@ class ReplayBuffer:
 
         self.goals_indices = []
         self.discovered_goals_ids = []
-        self.moving_cube = []
-        self.fixed_cube = []
+        
+        # Buffers of idxs: Nothing, stick1, stick2, magnet, scratch
+        self.objects_buffers = [[],[],[],[],[]]
 
         # memory management
         self.current_size = 0
@@ -62,12 +63,26 @@ class ReplayBuffer:
 
 
     def sample_transition_for_model(self, batch_size):
-        # ~ n_moving_cube =  len(self.moving_cube)
-        # ~ n_fixed_cube = max(n_moving_cube//3, min(len(self.fixed_cube),10))
-
-        # ~ ind = random.sample(self.moving_cube, n_moving_cube)+random.sample(self.fixed_cube, n_fixed_cube)
-        # ~ print("moving_cube episode", n_moving_cube, n_moving_cube/(n_moving_cube+n_fixed_cube))
-        ind = range(self.current_size-batch_size, self.current_size)
+        buffers_length = [ len(self.objects_buffers[i]) for i in range(5)]
+        print("object buffers", buffers_length)
+        
+        buffers_sample = buffers_length.copy()
+        buffers_sample[0] = max(0, 10-np.sum(buffers_length[1:]))
+            
+        ind = []
+        for obj in range(5):
+            ind += random.sample(self.objects_buffers[obj], buffers_sample[obj]) 
+        
+        ind = list(set(ind))
+        
+        count = np.zeros(5)
+        for idx in ind:
+            for obj in range(5):
+                if idx in self.objects_buffers[obj]:
+                    count[obj] +=1
+        print("Samples distribution: ", count)
+        # ~ ind = range(self.current_size-batch_size, self.current_size)
+        
         transitions = dict()
         for key in ['o', 'u']:
             transitions[key] = self.buffers[key][ind] 
@@ -81,6 +96,23 @@ class ReplayBuffer:
             transitions[key] = self.buffers[key][ind]
         transitions['o_2'] = self.buffers['o'][ind, 1:, :]
         return transitions
+
+    def add_idxs_to_buffers(self, idx, obs):
+        indices = [(24,28),(28,32),(32,34),(34,36)]
+        pertinent = False
+        for obj in range(1,5):
+            (i,j) = indices[obj-1]
+            if np.linalg.norm(obs[i:j])>0:
+                self.objects_buffers[obj].append(idx)
+                pertinent = True
+        if not pertinent:
+            self.objects_buffers[0].append(idx)
+
+
+    def remove_idxs_from_buffers(self, idx):
+        for obj in range(5):
+            if idx in self.objects_buffers[obj]:
+                self.objects_buffers[obj].remove(idx)
 
 
     def store_episode(self, episode_batch, goals_reached_ids):
@@ -104,18 +136,15 @@ class ReplayBuffer:
                         if len(goal_buffer_ids) > 0:
                             if idxs[i] == goal_buffer_ids[0]:
                                 goal_buffer_ids.popleft()
-                                if idxs[i] in self.moving_cube:
-                                    self.moving_cube.remove(idxs[i])
-                                else:
-                                    self.fixed_cube.remove(idxs[i])
+                                self.remove_idxs_from_buffers( idxs[i])
+
                 # append new goal indices
                 for reached_id in goals_reached_ids[i]:
                     ind_list = self.discovered_goals_ids.index(reached_id)
                     self.goals_indices[ind_list].append(idxs[i])
-                if np.linalg.norm(episode_batch['o'][i][-1][28:31]) > 0.001:
-                    self.moving_cube.append(idxs[i])
-                else:
-                    self.fixed_cube.append(idxs[i])
+                
+                self.add_idxs_to_buffers(idxs[i], episode_batch['o'][i][-1])
+
                 
             # load inputs into buffers
             for key in self.buffers.keys():
