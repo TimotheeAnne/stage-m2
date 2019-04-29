@@ -21,6 +21,12 @@ register(
     max_episode_steps=50
 )
 
+register(
+    id='ArmToolsToysModel-v1',
+    entry_point='gym_flowers.envs.armball:ArmToolsToysV1_model',
+    max_episode_steps=50
+)
+
 for n_dist in range(5):
     n_tasks = 4 + n_dist
     suffix = str(n_tasks)
