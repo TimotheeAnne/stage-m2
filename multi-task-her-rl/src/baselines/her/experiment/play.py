@@ -14,7 +14,7 @@ from src.baselines.her.rollout import RolloutWorker
 from src.reward_function.reward_function import OracleRewardFuntion
 
 
-PATH = '/home/tim/Documents/stage-m2/multi-task-her-rl/src/data/MultiTaskFetchArmNLP1-v0/81%' + '/'
+PATH = '/home/tim/Documents/stage-m2/multi-task-her-rl/src/data/from_remote/73%_armToolstoy_her_only' +'/'
 
 POLICY_FILE = PATH + 'policy_best.pkl'
 PARAMS_FILE = PATH + 'params.json'
@@ -40,6 +40,7 @@ def main(policy_file, seed, n_test_rollouts, render):
     
     nb_goals = params['nb_goals']
     params = config.prepare_params(params)
+
     config.log_params(params, logger=logger)
 
     dims = config.configure_dims(params)
@@ -55,8 +56,10 @@ def main(policy_file, seed, n_test_rollouts, render):
 
     for name in ['T', 'gamma', 'noise_eps', 'random_eps']:
         eval_params[name] = params[name]
-    
+
     evaluator = RolloutWorker(params['make_env'], policy, dims, logger, nb_goals, **eval_params)
+    evaluator.envs = evaluator.envs[:1]
+
     evaluator.seed(seed)
 
     oracle = OracleRewardFuntion(nb_goals)
@@ -68,7 +71,7 @@ def main(policy_file, seed, n_test_rollouts, render):
     all_out = []
     
     task_ind = list(range(nb_goals))  
-    n_per_task = 100
+    n_per_task = 1
     
     for ind in range(nb_goals):
         print("goal: ", ind)
@@ -83,7 +86,7 @@ def main(policy_file, seed, n_test_rollouts, render):
             else:
                 print('failed')
 
-            obs = ep['o'][0, :, :25]
+            obs = ep['o'][0, :, :18]
             Obs.append(obs)
             ac = ep['u'][0,:,:]
             Acs.append(ac)
@@ -95,7 +98,7 @@ def main(policy_file, seed, n_test_rollouts, render):
         all_out.append(Out)
         
 
-    with open('/home/tim/Documents/stage-m2/mypets/data/multiTask_80%_1200.pk', 'wb') as f:
+    with open('/home/tim/Documents/stage-m2/tf_test/data/ArmToolsToys_73%_train.pk', 'wb') as f:
         pickle.dump(np.array([all_obs, all_acs, all_out]), f)
     
 

@@ -23,6 +23,7 @@ class ArmToolsToysV1(gym.Env):
         self.n_act = 4
         self.half = 18
         self.n_obs = self.half*2
+        self.task_epsilon = 0.3
         
         # GripArm
         self.arm_lengths = [0.5, 0.3, 0.2]
@@ -299,7 +300,9 @@ class ArmToolsToysV1(gym.Env):
         else:
             self.lines["g1"][0].set_data(3, 3)
             self.lines["g2"][0].set_data(x[-1], y[-1])
-            
+        
+        # ~ self.lines["g_r"][0].set_data(x[-1], y[-1])
+        
         # Stick1
         if self.stick1_held or self.steps <= 1:
             self.lines["s11"][0].set_data([self.stick1_handle_pos[0], 
@@ -365,7 +368,8 @@ class ArmToolsToysV1(gym.Env):
                                    markeredgewidth=3, markeredgecolor="r", 
                                    ms=20)
         self.lines["g2"] = ax.plot(3, 3, 'o', color="r", ms=10)
-            
+        
+        
         # Stick1
         self.lines["s11"] = ax.plot([self.stick1_handle_pos[0],
                                      self.stick1_end_pos[0]],
@@ -378,7 +382,8 @@ class ArmToolsToysV1(gym.Env):
         self.lines["s13"] = ax.plot(self.stick1_end_pos[0],
                                     self.stick1_end_pos[1], 'o',
                                     color = "b", ms=6)
-                    
+        
+                                   
         # Stick2
         self.lines["s21"] = ax.plot([self.stick2_handle_pos[0],
                                      self.stick2_end_pos[0]],
@@ -391,14 +396,35 @@ class ArmToolsToysV1(gym.Env):
         self.lines["s23"] = ax.plot(self.stick2_end_pos[0],
                                     self.stick2_end_pos[1], 'o',
                                     color = "c", ms=6)
-                
+                                    
+                                    
+        self.lines["g_r"] = ax.plot(self.hand_pos[0], self.hand_pos[1], 'o', markerfacecolor='none', 
+                                   markeredgewidth=2, markeredgecolor="g", 
+                                   ms=200*self.task_epsilon)
+                                   
+        self.lines["s1_r"] = ax.plot(self.stick1_end_pos[0], self.stick1_end_pos[1], 'o', markerfacecolor='none', 
+                                   markeredgewidth=2, markeredgecolor="g", 
+                                   ms=200*self.task_epsilon)
+                                   
+        self.lines["s2_r"] = ax.plot(self.stick2_end_pos[0], self.stick2_end_pos[1], 'o', markerfacecolor='none', 
+                                   markeredgewidth=2, markeredgecolor="g", 
+                                   ms=200*self.task_epsilon)
+                                   
+        self.lines["mag1_r"] = ax.plot(self.magnet1_pos[0], self.magnet1_pos[1], 'o', markerfacecolor='none', 
+                                   markeredgewidth=2, markeredgecolor="g", 
+                                   ms=200*self.task_epsilon)
+                        
+        self.lines["scr1_r"] = ax.plot(self.scratch1_pos[0], self.scratch1_pos[1], 'o', markerfacecolor='none', 
+                                   markeredgewidth=2, markeredgecolor="g", 
+                                   ms=200*self.task_epsilon)
+                                   
         # Magnet1
         p = plt.Rectangle((self.magnet1_pos[0] - 0.05,
                            self.magnet1_pos[1] - 0.05),
                           0.1, 0.1, fc='b')
         self.patches['mag1'] = p
         ax.add_patch(p)
-       
+        
         
         # Scratch1
         p = plt.Rectangle((self.scratch1_pos[0] - 0.05,

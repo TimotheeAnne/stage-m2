@@ -148,7 +148,7 @@ class RolloutWorker:
                 try:
                     # We fully ignore the reward here because it will have to be re-computed
                     # for HER.
-                    if self.eval:
+                    if self.eval and len(u)>1:
                         u[1] = u[0].copy()
                     o_new[i], _, _, _ = self.envs[i].step(u[i])
                     # ~ o_new[i], _, _, _ = self.envs[i].step([0,1,0,0])
@@ -186,9 +186,10 @@ class RolloutWorker:
             # switch to next goal to be tested
             self.tested_goal_counter += 1
             goals_reached_ids = returns
-            ''' confusion matrices between the model and the env successes '''
-            all_goals_reached = self.oracle_reward_function.eval_all_goals_from_whole_episode(episode)
-            self.compute_confusion_matrix_with_model(all_goals_reached)
+            if len(self.envs)>1:
+                ''' confusion matrices between the model and the env successes '''
+                all_goals_reached = self.oracle_reward_function.eval_all_goals_from_whole_episode(episode)
+                self.compute_confusion_matrix_with_model(all_goals_reached)
 
         else:
             rewards = self.oracle_reward_function.eval_all_goals_from_episode(episode)

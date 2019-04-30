@@ -68,13 +68,13 @@ instructions = ['Move the Hand to the left', #0 44% 42%
 # for i in range(len(instructions)):
 #     print('Instruction', str(i), ':', instructions[i])
 
-epsilon = 0.05
+epsilon = 0.15
 
 
 def eucl_dist(pos1, pos2):
     return np.linalg.norm(pos1 - pos2, ord=2)
 
-""" Hand Pos 0-1"""
+""" Hand Pos 0-3"""
 def r0(obs,d_obs):
     # Move the Hand to right
     if d_obs[3] >  2 * epsilon:
@@ -106,14 +106,14 @@ def r3(obs,d_obs):
         
 """ Grasped stick1 """
 def r4(obs,d_obs):
-    if np.linalg.norm(d_obs[6:8]) > 0 :
+    if np.linalg.norm(d_obs[6:10]) > 0 :
         return 0
     else:
         return -1
 
 """ Grasped stick2 """
 def r5(obs,d_obs):
-    if np.linalg.norm(d_obs[10:12]) > 0 :
+    if np.linalg.norm(d_obs[10:14]) > 0 :
         return 0
     else:
         return -1

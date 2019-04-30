@@ -32,8 +32,8 @@ os.environ["CUDA_VISIBLE_DEVICES"] = ''
 #
 
 NUM_CPU = 1
-NB_EPOCHS = 100
-NB_GOALS = 24
+NB_EPOCHS = 50
+NB_GOALS = 30
 
 
 def train(policy, env_worker, model_worker, evaluator, reward_function, model_buffer, n_collect,
@@ -56,7 +56,7 @@ def train(policy, env_worker, model_worker, evaluator, reward_function, model_bu
     my_tqdm = (lambda x: x) if rank >0 else tqdm
     for epoch in range(n_epochs):
 
-        # ~ # train
+        # train
         # ~ """ Collecting Data for training the model """
         # ~ env_worker.clear_history()
 
@@ -69,8 +69,9 @@ def train(policy, env_worker, model_worker, evaluator, reward_function, model_bu
         # ~ """ Training the model"""
         # ~ samples = model_buffer.sample_transition_for_model(n_collect*(epoch+1))
         # ~ model_worker.envs[0].unwrapped.train(samples, logger.get_dir())
-        # ~ """ Training DDPG on the model """
-        # ~ model_worker.clear_history()
+        
+        """ Training DDPG on the model """
+        model_worker.clear_history()
 
         for i_c in my_tqdm(range(n_cycles)):
             # interact with the environment
