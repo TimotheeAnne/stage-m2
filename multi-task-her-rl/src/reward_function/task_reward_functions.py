@@ -21,34 +21,37 @@ observation =
 16 scratch1_pos[0],
 17 scratch1_pos[1],
 """          
-
-instructions = ['Move the Hand to the left', #0
-                'Move the Hand to the right',  #1
-                'Move the Hand further', #2
-                'Move the Hand closer',  #3
+#                                              indices %uniform_random_action %GRBF
+instructions = ['Move the Hand to the left', #0 44% 42%
+                'Move the Hand to the right',  #1 44% 42%
+                'Move the Hand further', #2 0% 0%
+                'Move the Hand closer',  #3 94% 99%
                 
-                'Grasp Stick1', #4
-                'Grasp Stick2', #5
+                'Grasp Stick1', #4 9.7% 0.8%
+                'Grasp Stick2', #5 9.7% 0.8%
                 
-                'Move the Stick1 to the left', #6
-                'Move the Stick1 to the right',  #7
-                'Move the Stick1 further', #8
-                'Move the Stick1 closer', #9
+                'Move the Stick1 to the left', #6 3.5% 
+                'Move the Stick1 to the right',  #7 2.6%
+                'Move the Stick1 further', #8 1.6%
+                'Move the Stick1 closer', #9 6.8%
 
-                'Move the Stick2 to the left', #10
-                'Move the Stick2 to the right', #11
-                'Move the Stick2 further', #12
-                'Move the Stick2 closer', #13
+                'Move the Stick1 closer to the Magnet', #10
+                'Move the Stick2 closer to the Scratch', #11
 
-                'Move the Magnet1 to the left', #14
-                'Move the Magnet1 to the right', #15
-                'Move the Magnet1 further', #16
-                'Move the Magnet1 closer', #17
+                'Move the Stick2 to the left', #12 2.7%
+                'Move the Stick2 to the right', #13 3.4%
+                'Move the Stick2 further', #14 1.6%
+                'Move the Stick2 closer', #15 6.9%
 
-                'Move the Scratch1 to the left', #18
-                'Move the Scratch1 to the right', #19
-                'Move the Scratch1 further', #20
-                'Move the Scratch1 closer', #21
+                'Move the Magnet1 to the left', #16 6 27
+                'Move the Magnet1 to the right', #17 7 10
+                'Move the Magnet1 further', #18 1 4
+                'Move the Magnet1 closer', #19 6 31
+
+                'Move the Scratch1 to the left', #20 6 8
+                'Move the Scratch1 to the right', #21 3 28
+                'Move the Scratch1 further', #22 1 1
+                'Move the Scratch1 closer', #23 5 33
 
 ]
 
@@ -170,7 +173,29 @@ def r13(obs,d_obs):
     else:
         return -1
 
-        
+""" Intermediary Rewards"""
+def i_r0(obs,d_obs):
+    # Move the stick1 closer to the magnet
+    m, dm = obs[14:16], d_obs[14:16]
+    s, ds = obs[8:10], d_obs[8:10]
+    m0 = m-dm
+    s0 = s-ds
+    if np.linalg.norm(m-s) < 0.5*np.linalg.norm(m0-s0):
+        return 0
+    else:
+        return -1
+
+def i_r1(obs,d_obs):
+    # Move the stick2 closer to the scratch
+    m, dm = obs[16:18], d_obs[16:18]
+    s, ds = obs[12:14], d_obs[12:14]
+    m0 = m-dm
+    s0 = s-ds
+    if np.linalg.norm(m-s) < 0.5*np.linalg.norm(m0-s0):
+        return 0
+    else:
+        return -1
+
 """ Magnet1 pos 14-17"""
 def r14(obs,d_obs):
     # Move the gripper to right
@@ -235,7 +260,11 @@ def r21(obs,d_obs):
     else:
         return -1
 
-task_instructions = [r0, r1, r2, r3, r4, r5, r6, r7, r8, r9,
-                     r10, r11, r12, r13, r14, r15, r16, r17, r18, r19,
-                     r20, r21,
+task_instructions = [r0, r1, r2, r3, 
+                     r4, r5, 
+                     r6, r7, r8, r9,
+                     r10, r11, r12, r13, 
+                     i_r0, i_r1,
+                     r14, r15, r16, r17, 
+                     r18, r19, r20, r21,
                      ]

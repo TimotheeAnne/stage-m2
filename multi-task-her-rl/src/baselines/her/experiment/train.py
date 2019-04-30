@@ -32,8 +32,8 @@ os.environ["CUDA_VISIBLE_DEVICES"] = ''
 #
 
 NUM_CPU = 1
-NB_EPOCHS = 20
-NB_GOALS = 14
+NB_EPOCHS = 100
+NB_GOALS = 24
 
 
 def train(policy, env_worker, model_worker, evaluator, reward_function, model_buffer, n_collect,
