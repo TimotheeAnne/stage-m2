@@ -56,21 +56,21 @@ def train(policy, env_worker, model_worker, evaluator, reward_function, model_bu
     my_tqdm = (lambda x: x) if rank >0 else tqdm
     for epoch in range(n_epochs):
 
-        # train
-        """ Collecting Data for training the model """
-        env_worker.clear_history()
+        # ~ # train
+        # ~ """ Collecting Data for training the model """
+        # ~ env_worker.clear_history()
 
-        for i_c in my_tqdm(range(n_collect)):
-            # interact with the environment
-            episode, goals_reached_ids = env_worker.generate_rollouts()
-            # save experience in memory
-            model_buffer.store_episode(episode, goals_reached_ids)
+        # ~ for i_c in my_tqdm(range(n_collect)):
+            # ~ # interact with the environment
+            # ~ episode, goals_reached_ids = env_worker.generate_rollouts()
+            # ~ # save experience in memory
+            # ~ model_buffer.store_episode(episode, goals_reached_ids)
 
-        """ Training the model"""
-        samples = model_buffer.sample_transition_for_model(n_collect*(epoch+1))
-        model_worker.envs[0].unwrapped.train(samples, logger.get_dir())
-        """ Training DDPG on the model """
-        model_worker.clear_history()
+        # ~ """ Training the model"""
+        # ~ samples = model_buffer.sample_transition_for_model(n_collect*(epoch+1))
+        # ~ model_worker.envs[0].unwrapped.train(samples, logger.get_dir())
+        # ~ """ Training DDPG on the model """
+        # ~ model_worker.clear_history()
 
         for i_c in my_tqdm(range(n_cycles)):
             # interact with the environment
@@ -162,8 +162,8 @@ def launch(env, trial_id, n_epochs, num_cpu, seed, replay_strategy, policy_save_
     """ for model environment """
     # ~ params_for_model['env_name'] = 'myMultiTaskFetchArmNLP-v1'
     # ~ params_for_model['env_name'] = 'MultiTaskFetchArmNLP1-v0'
-    # ~ params_for_model['env_name'] = 'ArmToolsToys-v1'
-    params_for_model['env_name'] = 'ArmToolsToysModel-v1'
+    params_for_model['env_name'] = 'ArmToolsToys-v1'
+    # ~ params_for_model['env_name'] = 'ArmToolsToysModel-v1'
 
     params_for_model = config.prepare_params(params_for_model)
 
