@@ -96,37 +96,43 @@ class ArmToolsToysV1(gym.Env):
         return -(d > self.epsilon).astype(np.int)
 
     def reset(self):
-        self.arm_angles = self.arm_rest_state[:-1]
+        # Arm
+        self.arm_angles = self.arm_rest_state[:-1] + np.random.normal(0,self.epsilon,3)
         a = self.arm_angle_shift + np.cumsum(np.array(self.arm_angles))
         a_pi = np.pi * a
         self.hand_pos = np.array([np.sum(np.cos(a_pi)*self.arm_lengths),
                                   np.sum(np.sin(a_pi)*self.arm_lengths)])
         
+        # Gripper
         self.gripper = self.arm_rest_state[3]
         
+        # Stick 1
         self.stick1_held = False
         self.stick1_handle_pos = np.array(self.stick1_rest_state[0:2])
         self.stick1_angle = self.stick1_rest_state[2]
-        
-        self.stick2_held = False
-        self.stick2_handle_pos = np.array(self.stick2_rest_state[0:2])
-        self.stick2_angle = self.stick2_rest_state[2]
         
         a = np.pi * self.stick1_angle
         self.stick1_end_pos = [
             self.stick1_handle_pos[0] + np.cos(a) * self.stick1_length, 
             self.stick1_handle_pos[1] + np.sin(a) * self.stick1_length]
-
+        
+        # Stick 2
+        self.stick2_held = False
+        self.stick2_handle_pos = np.array(self.stick2_rest_state[0:2])
+        self.stick2_angle = self.stick2_rest_state[2]
+        
         a = np.pi * self.stick2_angle
         self.stick2_end_pos = [
             self.stick2_handle_pos[0] + np.cos(a) * self.stick2_length, 
             self.stick2_handle_pos[1] + np.sin(a) * self.stick2_length]
         
+        # Magnet
         self.magnet1_move = 0
-        self.magnet1_pos = self.magnet1_rest_state
-
+        self.magnet1_pos = self.magnet1_rest_state + np.random.normal(0,self.epsilon,2)
+            
+        # Scratch
         self.scratch1_move = 0
-        self.scratch1_pos = self.scratch1_rest_state
+        self.scratch1_pos = self.scratch1_rest_state + np.random.normal(0,self.epsilon,2)
 
         # construct vector of observations
         self.observation = np.zeros(self.n_obs)
