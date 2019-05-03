@@ -2,13 +2,16 @@ import tensorflow as tf
 import numpy as np
 import pickle 
 from tqdm import tqdm
+import matplotlib.pyplot as plt 
 
 from replay_buffer import ReplayBuffer
 from GRBF import sample_random_trajectories
 
+FIGSIZE = (16,9)
+
 class Ensemble:
     """ Deterministic ensemble transition model """
-    def __init__(self, obs_d, acs_d, out_d, B=5, reg = 0):
+    def __init__(self, obs_d, acs_d, out_d, logdir, init_samples=100, B=5, reg = 0):
         self.ACS_DIM = acs_d
         self.OUTPUT_DIM = out_d
         self.OBS_DIM = obs_d
@@ -17,8 +20,10 @@ class Ensemble:
         self.B = B
         self.replay_buffer = ReplayBuffer()
         self.ensemble = []
+        self.logdir = logdir 
         self.trained = False
-        
+        self.iterations = 0
+        self.init_samples = init_samples
         for _ in range(self.B):
             model = tf.keras.models.Sequential([
                 tf.keras.layers.Dense(256, activation=tf.nn.relu, input_shape=[self.INPUT_DIM], 
@@ -53,10 +58,19 @@ class Ensemble:
         self.replay_buffer.add_samples( inputs, targets)
 
 
-    def train(self, EPOCH=5):
+    def train(self, EPOCH=5, verbose=False):
         for i in range(self.B):
             x, y = self.replay_buffer.sample()
-            self.ensemble[i].fit(x,y, epochs=EPOCH, shuffle=True, verbose=False)
+            self.ensemble[i].fit(x,y, epochs=EPOCH, shuffle=True, verbose=verbose)
+
+
+    def plot_histogram(self, data):
+        fig, ax = plt.subplots(figsize=FIGSIZE) 
+        plt.hist(data)
+        plt.xlim((1,3000))
+        plt.xscale('log')
+        plt.savefig(self.logdir+'/uncertitude_'+str(self.iterations)+".svg", format='svg')
+        plt.close(fig)
 
 
     def select_actions(self, init_obs, n_samples, GRBF=True):
@@ -69,10 +83,13 @@ class Ensemble:
             std = np.std(pred_traj, axis=0)
             epistemic_uncertainty = np.sum( std, axis = (0,2))
             selected = np.argmax(epistemic_uncertainty)
-            
+            self.plot_histogram(epistemic_uncertainty)
+            self.iterations += 1
             return actions[selected]
         else:
-            self.trained = True
+            self.iterations += 1
+            if self.iterations >= self.init_samples:
+                self.trained = True
             return actions[0]
 
 
