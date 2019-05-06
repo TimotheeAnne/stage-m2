@@ -15,11 +15,11 @@ class Evaluator:
             self.eval_data = pickle.load(f)
 
     def eval(self, DE):
-        self._eval(DE, "training")
-        self._eval(DE, "eval")
+        self._eval(DE, "training_data")
+        self._eval(DE, "evaluation_data")
 
     def _eval(self, DE, data_type):
-        [true_traj, Acs] = self.training_data if data_type == "training" else self.eval_data
+        [true_traj, Acs] = self.training_data if data_type == "training_data" else self.eval_data
         true_traj = np.array(true_traj)
         
         traj_pred = DE.predict_trajectory(true_traj, Acs)
@@ -46,8 +46,8 @@ class Evaluator:
         confusion_matrix = np.zeros((B, n_tasks,2,2))
         for j in range(len(true_rewards)):
             for r in range(n_tasks):
-                truth_value = true_rewards[j][r] == 0
+                truth_value = int(true_rewards[j][r] == 0)
                 for b in range(B):
-                    predict_value = predict_rewards[b][j][r] == 0
+                    predict_value = int(predict_rewards[b][j][r] == 0)
                     confusion_matrix[b][r][truth_value][predict_value] += 1 
         return confusion_matrix
