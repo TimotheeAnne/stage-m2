@@ -52,10 +52,10 @@ class ReplayBuffer:
             self.add_in_indexes(target, self.head)
             self.head = (self.head +1) % self.max_size
     
-    def sample(self, sampling_function):
-        n_sample = min([len(self.indexes[i]) for i in range(5)])
+    def sample(self, sampling_function, objects):
+        n_sample = min([len(self.indexes[i]) for i in objects])
         samples_indexes = []
-        for i in range(5):
+        for i in objects:
             samples_indexes += sampling_function( self.indexes[i], k=n_sample)
             
         x, y = [], []

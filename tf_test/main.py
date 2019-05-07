@@ -10,16 +10,18 @@ import numpy as np
 OBS_DIM = 18
 ACS_DIM = 4
 OUTPUT_DIM = 22
-EPOCH = 20
+EPOCH = 50
+STEP = 5
 N_EXPLORATIONS = 0
-N_INIT_SAMPLES = 100
+N_INIT_SAMPLES = 400
 REG = 0.000
 training_data = None
 eval_data = None
 B = 1
+objects = [0,1,2,3,4]
 
 training_data = "/home/tim/Documents/stage-m2/tf_test/data/ArmToolsToy-v1_40000_train.pk"
-eval_data = "/home/tim/Documents/stage-m2/tf_test/data/ArmToolsToy-v1_100_eval.pk"
+eval_data = "/home/tim/Documents/stage-m2/tf_test/data/ArmToolsToy-v1_1000_eval.pk"
 
 timestamp = datetime.datetime.now()
 logdir = './log/'+str(timestamp)
@@ -29,15 +31,17 @@ config = ""
 config += "EPOCH: "+str(EPOCH) +"\n"
 config += "N_EXPLORATIONS: "+str(N_EXPLORATIONS)+"\n"
 config += "N_INIT_SAMPLES: "+str(N_INIT_SAMPLES)+"\n"
+config += "STEP: "+str(STEP)+"\n"
 config += "REG: "+str(REG)+"\n"
 config += "B : "+str(B )+"\n"
 config += "training_data: "+str(training_data)+"\n"
-config += "eval_data : "+str(eval_data )+"\n"
+config += "eval_data: "+str(eval_data )+"\n"
+config += "objects: "+ str(objects) + "\n"
 
 with open(logdir+"/config.txt", 'w') as f:
     f.write(config)
 
-DE = Ensemble(OBS_DIM, ACS_DIM, OUTPUT_DIM, reg=REG, B=B, init_samples = N_INIT_SAMPLES, logdir=logdir)
+DE = Ensemble(OBS_DIM, ACS_DIM, OUTPUT_DIM, reg=REG, B=B, init_samples = N_INIT_SAMPLES, logdir=logdir, objects=objects)
 env = gym.make('ArmToolsToys-v1')
 
 Observations = []
@@ -61,7 +65,7 @@ if training_data is None:
 else:
     with open(training_data, 'br') as f:
         [observations, actions] = pickle.load(f)
-        DE.add_episodes( observations, actions)
+        DE.add_episodes( observations, actions, N_INIT_SAMPLES)
         Observations = observations.copy()
         Actions = actions.copy()
 
@@ -72,7 +76,9 @@ if not eval_data is None:
         
 DE.replay_buffer.pretty_print()
 
-DE.train(EPOCH, verbose=True, validation=True, sampling='sample')
+for i in range(EPOCH//STEP):
+    DE.train(STEP, verbose=True, validation=True, sampling='sample')
+
 
 # ~ for iteration in tqdm(range(N_EXPLORATIONS)):
     
@@ -95,6 +101,7 @@ DE.train(EPOCH, verbose=True, validation=True, sampling='sample')
     # ~ """ Train the ensemble """ 
     # ~ DE.train()
 
+DE.plot_training()
 
 evaluator = Evaluator( [Observations, Actions], eval_data, logdir, OBS_DIM )
 

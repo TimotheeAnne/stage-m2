@@ -13,7 +13,7 @@ FIGSIZE = (16,9)
 
 class Ensemble:
     """ Deterministic ensemble transition model """
-    def __init__(self, obs_d, acs_d, out_d, logdir, init_samples=100, B=5, reg = 0):
+    def __init__(self, obs_d, acs_d, out_d, logdir, init_samples=100, B=5, reg = 0, objects=None):
         self.ACS_DIM = acs_d
         self.OUTPUT_DIM = out_d
         self.OBS_DIM = obs_d
@@ -28,7 +28,9 @@ class Ensemble:
         self.init_samples = init_samples
         self.x_eval = []
         self.y_eval = []
-
+        self.history = [ [] for _ in range(self.B)]
+        self.objects = range(5) if objects is None else objects  
+        
         for _ in range(self.B):
             model = tf.keras.models.Sequential([
                 tf.keras.layers.Dense(256, activation=tf.nn.relu, input_shape=[self.INPUT_DIM], 
@@ -51,9 +53,10 @@ class Ensemble:
                           )
             self.ensemble.append(model)
 
-    def add_episodes(self, obs, acs):
+    def add_episodes(self, obs, acs, n_episodes=-1):
         assert( len(obs) == len(acs))
-        for j in range(len(obs)):
+        episodes = range(len(obs)) if n_episodes==-1 else random.sample( range(len(obs)), n_episodes)
+        for j in episodes:
             self.add_episode( obs[j], acs[j])
 
     def add_episode(self, obs, acs, returns=False):
@@ -81,16 +84,28 @@ class Ensemble:
 
     def train(self, EPOCH=5, verbose=False, validation=False, sampling='choice'):
         sampling_function = random.choice if sampling=='choice' else random.sample 
-        for i in range(self.B):
-            x, y = self.replay_buffer.sample(sampling_function)
+        for b in range(self.B):
+            x, y = self.replay_buffer.sample(sampling_function, self.objects)
             if validation:
-                history = self.ensemble[i].fit(x,y, epochs=EPOCH, validation_data = (self.x_eval,self.y_eval),
+                history = self.ensemble[b].fit(x,y, epochs=EPOCH, validation_data = (self.x_eval,self.y_eval),
                                     shuffle=True, verbose=verbose)
-                data = history.history
-                self.plot_MSE(data)
+                self.history[b].append(history.history)
             else:
-                self.ensemble[i].fit(x,y, epochs=EPOCH, shuffle=True, verbose=verbose)
+                self.ensemble[b].fit(x,y, epochs=EPOCH, shuffle=True, verbose=verbose)
 
+    def plot_training(self):
+        MSE = []
+        Val_MSE = []
+        for b in range(self.B):
+            mse = []
+            val_mse = []
+            for data in self.history[b]:
+                mse += list(data['val_mean_squared_error'])
+                val_mse += list(data['mean_squared_error'])
+            MSE.append(mse)
+            Val_MSE.append(val_mse)
+        self.plot_MSE(MSE, Val_MSE)
+            
     def plot_histogram(self, data):
         fig, ax = plt.subplots(figsize=FIGSIZE) 
         plt.hist(data)
@@ -162,10 +177,15 @@ class Ensemble:
             pred_trajs.append(pred_traj.copy())
         return np.array(pred_trajs)
         
-    def plot_MSE(self, data):
+    def plot_MSE(self, MSE, Val_MSE):
+        colors = ['crimson','royalblue','forestgreen','darkorange','orchid']
         fig, ax = plt.subplots(figsize=FIGSIZE)
-        plt.plot( data['val_mean_squared_error'], label="validation")
-        plt.plot( data['mean_squared_error'], label="training")
+        for b in range(self.B):
+            if b == 0:
+                plt.plot( MSE[b], label="validation "+str(b), color = colors[b], ls=':')
+            else:
+                plt.plot( MSE[b], color = colors[b], ls=':')
+            plt.plot( Val_MSE[b], label="training "+str(b), color = colors[b])
         plt.legend()
         plt.yscale('log')
         plt.xlabel('epochs')
