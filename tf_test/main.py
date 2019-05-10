@@ -12,16 +12,17 @@ ACS_DIM = 4
 OUTPUT_DIM = 22
 EPOCH = 50
 STEP = 5
-N_EXPLORATIONS = 0
+N_EXPLORATIONS = 1
+N_POPULATION = 500
 N_INIT_SAMPLES = 400
 REG = 0.000
 training_data = None
 eval_data = None
-B = 1
+B = 5
 objects = [0,1,2,3,4]
 
-training_data = "/home/tim/Documents/stage-m2/tf_test/data/ArmToolsToy-v1_40000_train.pk"
-eval_data = "/home/tim/Documents/stage-m2/tf_test/data/ArmToolsToy-v1_1000_eval.pk"
+training_data = "/home/tim/Documents/stage-m2/tf_test/data/ArmToolsToy-v1_4000_train.pk"
+eval_data = "/home/tim/Documents/stage-m2/tf_test/data/ArmToolsToy-v1_100_eval.pk"
 
 timestamp = datetime.datetime.now()
 logdir = './log/'+str(timestamp)
@@ -30,6 +31,7 @@ os.makedirs(logdir)
 config = "" 
 config += "EPOCH: "+str(EPOCH) +"\n"
 config += "N_EXPLORATIONS: "+str(N_EXPLORATIONS)+"\n"
+config += "N_POPULATION: "+str(N_POPULATION)+"\n"
 config += "N_INIT_SAMPLES: "+str(N_INIT_SAMPLES)+"\n"
 config += "STEP: "+str(STEP)+"\n"
 config += "REG: "+str(REG)+"\n"
@@ -52,8 +54,8 @@ if training_data is None:
     for _ in range(N_INIT_SAMPLES):
         observation = [env.reset()]
         actions = DE.select_actions( observation[0], 1, GRBF=False)
-        
         """ Perform the action sequence """
+        
         for t in range(50):
             obs, _, _, _ = env.step(actions[t])
             observation.append( obs)
@@ -77,28 +79,33 @@ if not eval_data is None:
 DE.replay_buffer.pretty_print()
 
 for i in range(EPOCH//STEP):
-    DE.train(STEP, verbose=True, validation=True, sampling='sample')
+    DE.train(STEP, verbose=True, validation=True, sampling='choice')
 
-
-# ~ for iteration in tqdm(range(N_EXPLORATIONS)):
+""" Exploration """
+for iteration in tqdm(range(N_EXPLORATIONS)):
     
-    # ~ """ Select an action sequence to perform """
-    # ~ observation = [env.reset()]
-    # ~ actions = DE.select_actions( observation[0], 100)
+    """ Select an action sequence to perform """
+    obs = env.reset()
+    actions, uncertainty = DE.select_actions( obs, N_POPULATION, GRBF=False)
+    observations = [[obs] for _ in range(N_POPULATION)]
     
-    # ~ """ Perform the action sequence """
-    # ~ for t in range(50):
-        # ~ env.render()
-        # ~ obs, _, _, _ = env.step(actions[t])
-        # ~ observation.append( obs)
+    """ Perform the action sequence """
+    for j in range(N_POPULATION):
+        obs = env.reset()
+        for t in range(50):
+            # ~ env.render()
+            obs, _, _, _ = env.step(actions[j][t])
+            observations[j] = np.concatenate( (observations[j], [obs]))
 
-    # ~ Observations.append( observation)
-    # ~ Actions.append(actions)
-
-    # ~ """ Add the collected data to the replay buffer """
-    # ~ DE.add_episode( observation,  actions)
+    DE.save_exploration(actions, uncertainty, observations)
     
-    # ~ """ Train the ensemble """ 
+    # ~ Observations.append(observations[-1])
+    # ~ Actions.append(actions[-1])
+
+    """ Add the collected data to the replay buffer """
+    # ~ DE.add_episode( observations,  actions)
+    
+    """ Train the ensemble """ 
     # ~ DE.train()
 
 DE.plot_training()

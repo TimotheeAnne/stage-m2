@@ -7,65 +7,12 @@ import numpy as np
 import pickle
 from dotmap import DotMap
 import random 
+import sys
 
-# ~ def goal_distance(goal_a, goal_b):
-    # ~ assert goal_a.shape == goal_b.shape
-    # ~ return np.linalg.norm(goal_a - goal_b, axis=-1)
 
 OBS_DIM = 18
 
-class Normalization:
-    def __init__(self):
-        self.inputs_mean = 0
-        self.inputs_std = 1
-        self.outputs_mean = 0
-        self.outputs_std = 1
-        self.samples = 0
-        
-    def init(self,inputs,outputs):
-        if self.samples == 0:
-            self.inputs_mean = np.mean(inputs,axis=0)
-            self.inputs_std = np.std(inputs,axis=0)
-            self.outputs_mean = np.mean(outputs,axis=0)
-            self.outputs_std = np.std(outputs,axis=0)
-            self.samples = len(inputs)
-        else:
-            n_old_samples = self.samples
-            n_new_samples = len(inputs)
-            self.samples = n_old_samples + n_new_samples
-            alpha = n_old_samples/self.samples
-            self.inputs_mean = alpha * self.inputs_mean + (1-alpha) * np.mean(inputs,axis=0)
-            self.inputs_std = alpha * self.inputs_std + (1-alpha) * np.std(inputs,axis=0)
-            self.outputs_mean = alpha * self.outputs_mean + (1-alpha) * np.mean(outputs,axis=0)
-            self.outputs_std = alpha * self.outputs_std + (1-alpha) * np.std(outputs,axis=0)
-        for i in range(len(self.inputs_std)):
-            if self.inputs_std[i] == 0.:
-                self.inputs_std[i] = 1
-        for i in range(len(self.outputs_std)):
-            if self.outputs_std[i] == 0.:
-                self.outputs_std[i] = 1
-        
-    def load(self, model_dir):
-        with open(os.path.join(model_dir, "norm.pk"), "br") as f:
-            [self.inputs_mean,self.inputs_std,self.outputs_mean, self.outputs_std] = pickle.load(f)
-        
-    def normalize_inputs(self,x):
-        return (x - self.inputs_mean) / self.inputs_std
-
-    def normalize_outputs(self,x):
-        return (x - self.outputs_mean) / self.outputs_std
-        
-    def denormalize_outputs(self,y):
-        return (y * self.outputs_std) + self.outputs_mean
-        
-    def pretty_print(self):
-        print( "in mean", self.inputs_mean)
-        print( "in std", self.inputs_std)
-        print( "out mean", self.outputs_mean)
-        print( "out std", self.outputs_std)
-
-
-def compute_samples(Episodes,norm):
+def compute_samples(Episodes):
     true_traj, Acs = Episodes['o'], Episodes['u']
     
     Inputs = []
@@ -75,19 +22,13 @@ def compute_samples(Episodes,norm):
         for t in range(50):
             inputs = np.concatenate((true_traj[j][t][:OBS_DIM],Acs[j][t]))
             targets = true_traj[j][t+1][:OBS_DIM] - true_traj[j][t][:OBS_DIM]
-            bool_targets = [1 if abs(targets[i])>0 else -1 for i in [6,10,14,16]]
+            bool_targets = [1 if np.linalg.norm(targets[i:i+2]) > 0 else -1 for i in [8,12,14,16]]
             Inputs.append(inputs)
             Targets.append(np.concatenate((targets,bool_targets)))
             if 1 in bool_targets :
                 moved_objects += 1
     print( 'moved_objects transitions', moved_objects, moved_objects/(50*j))
-    # ~ norm.init(Inputs,Targets)
-    # ~ norm.pretty_print()
-    samples = list(zip( Inputs,Targets))
-    np.random.shuffle( samples)
-    Inputs, Targets = zip( *samples)
-    
-    return (norm.normalize_inputs(np.array(Inputs)),norm.normalize_outputs(np.array(Targets)))
+    return (np.array(Inputs),np.array(Targets))
     
 class ArmToolsToysV1_model(gym.Env):
     metadata = {'render.modes': ['human']}
@@ -114,9 +55,9 @@ class ArmToolsToysV1_model(gym.Env):
         
         """ model Loading """
         self.model_dir = "/home/tim/Documents/stage-m2/gym-myFetchPush/log/tf25/"
-        self.norm = Normalization()
+        self.replay_buffer = ReplayBuffer()
         self.model = self.nn_constructor(self.model_dir)
-        self.EPOCH = 100
+        self.EPOCH = 50
         self.iteration = 0
 
     def nn_constructor(self,model_dir):
@@ -145,12 +86,14 @@ class ArmToolsToysV1_model(gym.Env):
         return model
 
     def train(self, Episodes, logdir=None):
-        # ~ self.model.set_weights(self.weight_init)
         if not logdir is None:
             with open(os.path.join(logdir, 'train_episodes'+str(self.iteration)+'.pk'), 'ba') as f:
                 pickle.dump(Episodes, f)
         self.iteration += 1
-        (x_train, y_train) = compute_samples(Episodes, self.norm)
+        (inputs, targets) = compute_samples(Episodes)
+        self.replay_buffer.add_samples(inputs,targets)
+        # ~ self.replay_buffer.pretty_print()
+        (x_train, y_train) = self.replay_buffer.sample(random.sample)
         self.model.fit(x_train, y_train, epochs=self.EPOCH,shuffle=True, verbose=False)
 
     def seed(self, seed):
@@ -158,28 +101,13 @@ class ArmToolsToysV1_model(gym.Env):
         np.random.seed(seed)
         return seed
         
-    # ~ def compute_reward(self, achieved_goal, desired_goal, info=None):
-        # ~ d = goal_distance(achieved_goal, desired_goal)
-        # ~ if self.reward_type == 'sparse':
-            # ~ return -(d > self.distance_threshold).astype(np.float32)
-        # ~ else:
-            # ~ return -d
-            
-    # ~ def is_success(self, achieved_goal, desired_goal):
-        # ~ d = goal_distance(achieved_goal, desired_goal)
-        # ~ return -(d > self.distance_threshold).astype(np.float32)
 
-            
-    # ~ def sample_goal(self):
-        # ~ goal = self._observation[:3] + np.random.uniform(-self.target_range, self.target_range, size=3)
-        # ~ return goal.copy()
-        
     def step(self, action):
         """ Compute the next observation """
 
-        inputs = np.array([ self.norm.normalize_inputs(np.concatenate((self._observation[:self.half],action)))])
+        inputs = np.array([ np.concatenate((self._observation[:self.half],action))])
         
-        output = self.norm.denormalize_outputs(self.model.predict(inputs)[0])
+        output = self.model.predict(inputs)[0]
         pred = output[:self.half]
         pred[5] = 1 if pred[5]>0 else -1
         for (i,b) in [(6,18),(7,18),(8,18),(9,18),(10,19),(11,19),(12,19),(13,19),(14,20),(15,20),(16,21),(17,21)]:
@@ -218,3 +146,83 @@ class ArmToolsToysV1_model(gym.Env):
     def close(self):
       pass
     
+class ReplayBuffer:
+    
+    def __init__(self):
+        self.buffer = []
+        
+        self.indexes = [[],[],[],[],[]]
+        self.current_size = 0
+        self.max_size = 2000000
+        self.head = 0
+
+    def add_samples(self, inputs, targets):
+        assert( len(inputs)==len(targets))
+        n = len(inputs)
+        for (inp, target) in zip( inputs,targets):
+            self.add(inp,target)
+
+
+    def add_in_indexes(self, target, idx):
+        pertinent = False
+        if target[18] == 1:
+            self.indexes[1].append(idx)
+            pertinent = True
+        if target[19] == 1:
+            self.indexes[2].append(idx)
+            pertinent = True
+        if target[20] == 1:
+            self.indexes[3].append(idx)
+            pertinent = True
+        if target[21] == 1:
+            self.indexes[4].append(idx)
+            pertinent = True
+        if not pertinent:
+            self.indexes[0].append(idx)
+
+    def remove_from_indexes(self, idx):
+        for i in range(5):
+            if idx in self.indexes[i]:
+                self.indexes[i].remove(idx)
+
+    def add(self, inp, target):
+        if self.current_size < self.max_size:
+            self.buffer.append({'input': inp, 'target':target})
+            self.add_in_indexes( target, self.current_size)
+            self.current_size += 1 
+        else:
+            self.buffer[self.head]={'input': inp, 'target':target}
+            self.remove_from_indexes(self.head)
+            self.add_in_indexes(target, self.head)
+            self.head = (self.head +1) % self.max_size
+    
+    def sample(self, sampling_function, objects=range(5)):
+        sizes = [len(self.indexes[i]) for i in range(5)]
+        if np.sum(sizes[1:]) < 100:
+            n_sample = sizes[0]
+        else:
+            n_sample = max(100, min(sizes))
+        samples_indexes = []
+        for i in objects:
+            samples_indexes += list(sampling_function( self.indexes[i], min( sizes[i], n_sample)))
+        
+        count = [0 for _ in range(5)]
+
+        x, y = [], []
+        for idx in samples_indexes:
+            for i in range(5):
+                if idx in self.indexes[i]:
+                    count[i] += 1
+            sample = self.buffer[idx]
+            x.append(sample['input'])
+            y.append(sample['target'])
+        print("Training transitions: ", count)
+        return np.array(x), np.array(y)
+
+    def pretty_print(self):
+        sizes = [len(self.indexes[i]) for i in range(5)]
+        print("Current size: ", self.current_size)
+        print("Head: ", self.head)
+        print("Indexes sizes: ", sizes)
+        if self.current_size > 0:
+            print( " Proportion: ", np.array(sizes)/self.current_size)

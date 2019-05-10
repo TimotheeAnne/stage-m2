@@ -56,7 +56,7 @@ class ReplayBuffer:
         n_sample = min([len(self.indexes[i]) for i in objects])
         samples_indexes = []
         for i in objects:
-            samples_indexes += sampling_function( self.indexes[i], k=n_sample)
+            samples_indexes += list(sampling_function( self.indexes[i], n_sample))
             
         x, y = [], []
         for idx in samples_indexes:

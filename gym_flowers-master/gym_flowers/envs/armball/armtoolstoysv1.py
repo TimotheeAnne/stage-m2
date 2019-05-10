@@ -14,7 +14,7 @@ class ArmToolsToysV1(gym.Env):
 
     def __init__(self, 
                  n_timesteps=50,
-                 epsilon=0.1,
+                 epsilon=0.,
                  distractor_noise = 0.01
                  ):
         

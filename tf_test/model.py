@@ -59,6 +59,7 @@ class Ensemble:
         for j in episodes:
             self.add_episode( obs[j], acs[j])
 
+
     def add_episode(self, obs, acs, returns=False):
         inputs, targets = [], []
         for t in range(50):
@@ -72,6 +73,7 @@ class Ensemble:
         else:
             self.replay_buffer.add_samples( inputs, targets)
 
+
     def add_validation(self, obs, acs):
         assert( len(obs) == len(acs))
         x ,y = [], []
@@ -82,8 +84,9 @@ class Ensemble:
         self.x_eval = np.array(x)
         self.y_eval = np.array(y)
 
+
     def train(self, EPOCH=5, verbose=False, validation=False, sampling='choice'):
-        sampling_function = random.choice if sampling=='choice' else random.sample 
+        sampling_function = np.random.choice if sampling=='choice' else random.sample 
         for b in range(self.B):
             x, y = self.replay_buffer.sample(sampling_function, self.objects)
             if validation:
@@ -92,6 +95,8 @@ class Ensemble:
                 self.history[b].append(history.history)
             else:
                 self.ensemble[b].fit(x,y, epochs=EPOCH, shuffle=True, verbose=verbose)
+        self.trained = True
+
 
     def plot_training(self):
         MSE = []
@@ -105,7 +110,8 @@ class Ensemble:
             MSE.append(mse)
             Val_MSE.append(val_mse)
         self.plot_MSE(MSE, Val_MSE)
-            
+
+
     def plot_histogram(self, data):
         fig, ax = plt.subplots(figsize=FIGSIZE) 
         plt.hist(data)
@@ -117,22 +123,24 @@ class Ensemble:
 
     def select_actions(self, init_obs, n_samples, GRBF=True):
         if GRBF:
-            actions = sample_random_trajectories(n_samples,4,50)
+            actions = np.array(sample_random_trajectories(n_samples,4,50))
         else:
             actions = 2*np.random.random((n_samples, 50,self.ACS_DIM))-1
         if self.trained:
             pred_traj = self.predict_trajectory([[init_obs]]*n_samples, actions)
             std = np.std(pred_traj, axis=0)
             epistemic_uncertainty = np.sum( std, axis = (0,2))
-            selected = np.argmax(epistemic_uncertainty)
+            sorted_indices = np.argsort(epistemic_uncertainty)
             self.plot_histogram(epistemic_uncertainty)
             self.iterations += 1
-            return actions[selected]
+            return actions[sorted_indices], np.sort(epistemic_uncertainty) 
         else:
-            self.iterations += 1
-            if self.iterations >= self.init_samples:
-                self.trained = True
-            return actions[0]
+            return actions, None
+
+
+    def save_exploration(self, actions, uncertainty, observations):
+        with open(os.path.join(self.logdir, "exploration.pk"), "ab") as f:
+            pickle.dump( [actions, uncertainty, observations], f)
 
 
     def filter(self, obs_pred, output, obs):
@@ -161,6 +169,7 @@ class Ensemble:
 
         return np.array(pred_trajs)
 
+
     def predict_transition(self, true_traj, Acs):
         true_traj = np.array(true_traj)
         Acs = np.array(Acs)
@@ -176,7 +185,8 @@ class Ensemble:
                 pred_traj.append(obs.copy())
             pred_trajs.append(pred_traj.copy())
         return np.array(pred_trajs)
-        
+
+
     def plot_MSE(self, MSE, Val_MSE):
         colors = ['crimson','royalblue','forestgreen','darkorange','orchid']
         fig, ax = plt.subplots(figsize=FIGSIZE)

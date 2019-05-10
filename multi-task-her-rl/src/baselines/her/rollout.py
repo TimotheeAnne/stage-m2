@@ -288,6 +288,7 @@ class RolloutWorker:
             logs+= [('rate_TPR', TP/(TP+FN) if (TP +FN) !=0 else 0)]
             logs+= [('rate_TNR', TN/(TN+FP) if (FP +TN) !=0 else 0)]
             logs+= [('rate_ACC', (TP+TN)/(TP+TN+FP+FN) if (TP+TN+FP+FN) !=0 else 0)]
+            logs+= [('rate_Precision', TP/(TP+FP) if (TP+FP) !=0 else 0)]
             logs+= [('rate_F1 score', 2*TP/(2*TP+FP+FN) if (2*TP+FP+FN) !=0 else 0)]
             
         if self.compute_Q:
