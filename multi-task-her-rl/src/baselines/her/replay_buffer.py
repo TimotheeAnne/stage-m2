@@ -66,12 +66,12 @@ class ReplayBuffer:
         buffers_length = [ len(self.objects_buffers[i]) for i in range(5)]
         print("object buffers", buffers_length)
         
-        # ~ buffers_sample = buffers_length.copy()
+        buffers_sample = buffers_length.copy()
         # ~ buffers_sample[0] = max(0, 10-np.sum(buffers_length[1:]))
             
-        # ~ ind = []
-        # ~ for obj in range(5):
-            # ~ ind += random.sample(self.objects_buffers[obj], buffers_sample[obj]) 
+        ind = []
+        for obj in range(5):
+            ind += random.sample(self.objects_buffers[obj], buffers_sample[obj]) 
         
         # ~ ind = list(set(ind))
         
@@ -83,7 +83,6 @@ class ReplayBuffer:
         # ~ print("Samples distribution: ", count)
         # ~ ind = range(self.current_size-batch_size, self.current_size)
         
-        ind = random.sample( range(self.n_transitions_stored), batch_size)
         transitions = dict()
         for key in ['o', 'u']:
             transitions[key] = self.buffers[key][ind] 
