@@ -5,7 +5,6 @@ import os
 import tensorflow as tf
 import numpy as np
 import pickle
-from dotmap import DotMap
 import random 
 import sys
 
@@ -35,6 +34,7 @@ class ArmToolsToysV1_model(gym.Env):
     
     def __init__(self):
         self.n_act = 4
+        self.OBS_DIM = OBS_DIM
         self.half = OBS_DIM
         self.n_obs = self.half*2
         
@@ -52,13 +52,18 @@ class ArmToolsToysV1_model(gym.Env):
         self.action_space = spaces.Box(-1., 1., shape=(4,), dtype='float32')
         self.observation_space = spaces.Box(-np.inf, np.inf, shape=(self.n_obs,), dtype='float32')
         
-        
         """ model Loading """
-        self.model_dir = "/home/tim/Documents/stage-m2/gym-myFetchPush/log/tf25/"
+        self.model_dir = None
+        self.eval_data = "../../../../../tf_test/data/ArmToolsToy_1000pertinent.pk"
         self.replay_buffer = ReplayBuffer()
         self.model = self.nn_constructor(self.model_dir)
         self.EPOCH = 50
         self.iteration = 0
+
+    def init(self, oracle, rank, logdir):
+        self.oracle = oracle(30)
+        self.rank = rank
+        self.logdir = logdir
 
     def nn_constructor(self,model_dir):
         """ Load BNN """
@@ -85,17 +90,17 @@ class ArmToolsToysV1_model(gym.Env):
         self.weight_init = model.get_weights()
         return model
 
-    def train(self, Episodes, logdir=None):
-        if not logdir is None:
-            with open(os.path.join(logdir, 'train_episodes'+str(self.iteration)+'.pk'), 'ba') as f:
-                pickle.dump(Episodes, f)
-        self.iteration += 1
+    def train(self, Episodes):
+        with open(self.logdir+"/final_observations_r"+str(self.rank)+"_"+str(self.iteration)+".pk",'bw') as f:
+            pickle.dump(np.array(Episodes['o'])[:,-1,:18],f)
         (inputs, targets) = compute_samples(Episodes)
         self.replay_buffer.add_samples(inputs,targets)
-        # ~ self.replay_buffer.pretty_print()
         (x_train, y_train) = self.replay_buffer.sample(random.sample)
-        self.model.fit(x_train, y_train, epochs=self.EPOCH,shuffle=True, verbose=False)
-
+        es = tf.keras.callbacks.EarlyStopping(monitor='val_loss', min_delta=0, patience=2,verbose=0, mode='auto')
+        self.model.fit(x_train, y_train, epochs=self.EPOCH, shuffle=True, verbose=False, validation_split=0.1, callbacks=[es])
+        self.eval()
+        self.iteration += 1
+        
     def seed(self, seed):
         random.seed(seed)
         np.random.seed(seed)
@@ -104,7 +109,6 @@ class ArmToolsToysV1_model(gym.Env):
 
     def step(self, action):
         """ Compute the next observation """
-
         inputs = np.array([ np.concatenate((self._observation[:self.half],action))])
         
         output = self.model.predict(inputs)[0]
@@ -119,9 +123,8 @@ class ArmToolsToysV1_model(gym.Env):
         
         """ increment step """
         self._steps += 1
-            
         return self._observation.copy(), 0, False, {}
-      
+
     def reset(self, obs=None):
         if obs is None:
             self._observation = np.zeros(self.n_obs)
@@ -145,9 +148,76 @@ class ArmToolsToysV1_model(gym.Env):
 
     def close(self):
       pass
-    
+
+    def eval(self):
+        with open( self.eval_data, 'rb') as f:
+            eval_data = pickle.load(f)
+        [true_traj, Acs] = eval_data
+        true_traj = np.array(true_traj)
+        
+        traj_pred = self.predict_trajectory(true_traj, Acs)
+        trans_pred = self.predict_transition(true_traj, Acs)
+        
+        true_rewards = self.oracle.eval_all_goals_from_state(true_traj[:,-1])
+        predict_rewards = self.oracle.eval_all_goals_from_state( traj_pred[-1,:])
+                
+        confusion_matrix = self.compute_confusion_matrix(true_rewards, predict_rewards)
+
+        traj_pred = traj_pred[:,:,:18]
+        
+        with open(self.logdir+"/prediction_r"+str(self.rank)+"_"+str(self.iteration)+".pk",'bw') as f:
+            pickle.dump((traj_pred,trans_pred),f)
+
+        with open(self.logdir+"/confusion_matrix_r"+str(self.rank)+"_"+str(self.iteration)+".pk",'bw') as f:
+            pickle.dump(confusion_matrix,f)
+
+    def compute_confusion_matrix(self, true_rewards, predict_rewards):
+        n_tasks = len(true_rewards[0])
+        confusion_matrix = np.zeros((n_tasks,2,2))
+        for j in range(len(true_rewards)):
+            for r in range(n_tasks):
+                truth_value = int(true_rewards[j][r] == 0)
+                predict_value = int(predict_rewards[j][r] == 0)
+                confusion_matrix[r][truth_value][predict_value] += 1 
+        return confusion_matrix
+
+    def filter(self, obs_pred, output, obs):
+        # gripper state prediction -1 or 1 
+        obs_pred[:,5] =  2*(obs_pred[:,5]>0)-1
+        # moving objects prediction
+        for (i,b) in [(6,18),(7,18),(8,18),(9,18),(10,19),(11,19),(12,19),(13,19),(14,20),(15,20),(16,21),(17,21)]:
+            obs_pred[:,i] = obs_pred[:,i] * (output[:,b] > 0) + obs[:,i] * (output[:,b] <= 0)
+        return obs_pred
+
+
+    def predict_trajectory(self, true_traj, Acs):
+        true_traj = np.array(true_traj)
+        Acs = np.array(Acs)
+        obs = true_traj[:,0,:self.OBS_DIM]
+        pred_traj = [np.concatenate((obs,obs-true_traj[:,0,:self.OBS_DIM]),axis=1)]
+        for t in range(np.shape(Acs)[1]):
+            inputs = np.concatenate((obs[:,:self.OBS_DIM],Acs[:,t]), axis=1)
+            output = self.model.predict(inputs)
+            obs_pred = output[:,:self.OBS_DIM]+obs
+            obs = self.filter(obs_pred, output, obs)
+            pred_traj.append(np.concatenate((obs,obs-true_traj[:,0,:self.OBS_DIM]),axis=1))
+        return np.array(pred_traj.copy())
+
+
+    def predict_transition(self, true_traj, Acs):
+        true_traj = np.array(true_traj)
+        Acs = np.array(Acs)
+        obs = true_traj[:,0,:self.OBS_DIM]
+        pred_traj = [obs]
+        for t in range(np.shape(Acs)[1]):
+            inputs = np.concatenate((true_traj[:,t,:self.OBS_DIM],Acs[:,t]), axis=1)
+            output = self.model.predict(inputs)
+            obs_pred = output[:,:self.OBS_DIM]+true_traj[:,t,:self.OBS_DIM]
+            obs = self.filter(obs_pred, output, obs)
+            pred_traj.append(obs.copy())
+        return np.array(pred_traj.copy())
+        
 class ReplayBuffer:
-    
     def __init__(self):
         self.buffer = []
         
@@ -198,10 +268,12 @@ class ReplayBuffer:
     
     def sample(self, sampling_function, objects=range(5)):
         sizes = [len(self.indexes[i]) for i in range(5)]
-        if np.sum(sizes[1:]) < 100:
+        if np.sum(sizes[1:]) <= 50:
             n_sample = sizes[0]
+        elif np.sum(sizes[3:]) <= 50:
+            n_sample = np.sum(sizes[1:])
         else:
-            n_sample = max(100, min(sizes))
+            n_sample = np.sum(sizes[3:])
         samples_indexes = []
         for i in objects:
             samples_indexes += list(sampling_function( self.indexes[i], min( sizes[i], n_sample)))

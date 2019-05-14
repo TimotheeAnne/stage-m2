@@ -236,6 +236,7 @@ model.compile(optimizer='adam',
                         # ~ shuffle=True
                         # ~ )
 
+
 for epoch in range(EPOCH):
     history = model.fit(x_train, y_train,
                         epochs=5,

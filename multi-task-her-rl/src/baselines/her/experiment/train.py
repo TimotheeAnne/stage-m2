@@ -32,13 +32,13 @@ os.environ["CUDA_VISIBLE_DEVICES"] = ''
 #
 
 NUM_CPU = 1
-NB_EPOCHS = 50
+NB_EPOCHS = 100
 NB_GOALS = 30
 
 
 def train(policy, env_worker, model_worker, evaluator, reward_function, model_buffer, n_collect,
           n_epochs, n_test_rollouts, n_cycles, n_batches, policy_save_interval,
-          save_policies, **kwargs):
+          save_policies, logdir, **kwargs):
     rank = MPI.COMM_WORLD.Get_rank()
 
     if rank == 0:
@@ -53,6 +53,9 @@ def train(policy, env_worker, model_worker, evaluator, reward_function, model_bu
     first_time = last_time = time.time()
     best_success_rate = -1
 
+
+    model_worker.envs[0].unwrapped.init( OracleRewardFuntion, rank, logdir)
+    
     my_tqdm = (lambda x: x) if rank >0 else tqdm
     for epoch in range(n_epochs):
 
@@ -68,7 +71,7 @@ def train(policy, env_worker, model_worker, evaluator, reward_function, model_bu
 
         """ Training the model"""
         samples = model_buffer.sample_transition_for_model(n_collect*(epoch+1))
-        model_worker.envs[0].unwrapped.train(samples, logger.get_dir())
+        model_worker.envs[0].unwrapped.train(samples)
         
         """ Training DDPG on the model """
         model_worker.clear_history()
@@ -89,9 +92,9 @@ def train(policy, env_worker, model_worker, evaluator, reward_function, model_bu
         for _ in range(n_test_rollouts):
             episode, goals_reached_ids = evaluator.generate_rollouts()
             episodes.append( (episode, goals_reached_ids ))
-        if rank == 0:
-            with open(os.path.join(logger.get_dir(), 'eval_episodes.pk'), 'ba') as f:
-                pickle.dump(episodes, f)
+        # ~ if rank == 0:
+            # ~ with open(os.path.join(logger.get_dir(), 'eval_episodes.pk'), 'ba') as f:
+                # ~ pickle.dump(episodes, f)
 
         best_success_rate, last_time = log(epoch, evaluator, model_worker, policy, best_success_rate, save_policies, best_policy_path, latest_policy_path,
             policy_save_interval, rank, periodic_policy_path, first_time, last_time)
@@ -103,6 +106,7 @@ def train(policy, env_worker, model_worker, evaluator, reward_function, model_bu
 
 def launch(env, trial_id, n_epochs, num_cpu, seed, replay_strategy, policy_save_interval, clip_return, normalize_obs, nb_goals,
            override_params={}, save_policies=True):
+    
     # Fork for multi-CPU MPI implementation.
     if num_cpu > 1:
         try:
@@ -117,6 +121,8 @@ def launch(env, trial_id, n_epochs, num_cpu, seed, replay_strategy, policy_save_
         U.single_threaded_session().__enter__()
     rank = MPI.COMM_WORLD.Get_rank()
 
+
+    
     # Configure logging
     if rank == 0:
         logdir = find_save_path('../../../data/' + env + "/", trial_id)
@@ -124,6 +130,11 @@ def launch(env, trial_id, n_epochs, num_cpu, seed, replay_strategy, policy_save_
     else:
         logdir = None
 
+    logdir = MPI.COMM_WORLD.bcast(logdir, root=0)
+
+    # ~ MPI.COMM_WORLD.Barrier()
+    
+    
     # Seed everything.
     rank_seed = seed + 1000000 * rank
     set_global_seeds(rank_seed)

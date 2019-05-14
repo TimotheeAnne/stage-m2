@@ -11,7 +11,7 @@ import time
 
 true_traj, Acs = [], []
 count = 0
-for i in tqdm(range(100000)):
+for i in tqdm(range(100)):
     actions = 2*np.random.random((50,4))-1
 
     traj = []
@@ -22,20 +22,20 @@ for i in tqdm(range(100000)):
     obs = env.reset()
     traj.append(obs.copy())
 
-    for t in range(10):
+    for t in range(50):
         # ~ env.render()
         # ~ time.sleep(0.0)
         obs, reward, done, info = env.step(actions[t])
         traj.append(obs.copy())
         
-    if np.linalg.norm( obs[24:36]) > 0:
+    if np.linalg.norm( obs[32:]) > 0:
         count += 1 
-    Acs.append(actions)
-    true_traj.append(traj)
+        Acs.append(actions)
+        true_traj.append(traj)
 
 print("grasping stick", count)
 
-with open("/home/tim/Documents/stage-m2/tf_test/data/ArmToolsToy_random_eval.pk", 'bw') as f:
-    pickle.dump( [true_traj,Acs], f)
+# ~ with open("/home/tim/Documents/stage-m2/tf_test/data/ArmToolsToy_magnetscratch.pk", 'bw') as f:
+    # ~ pickle.dump( [true_traj,Acs], f)
 
 env.close()

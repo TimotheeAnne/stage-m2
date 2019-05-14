@@ -61,8 +61,9 @@ my_colors = ['crimson','royalblue','forestgreen','darkorange','orchid']
 
 # ~ folder_path = '/home/tim/Documents/stage-m2/multi-task-her-rl/src/data/myMultiTaskFetchArmNLP-v0/'
 # ~ folder_path = '/home/tim/Documents/stage-m2/multi-task-her-rl/src/data/MultiTaskFetchArmNLP1-v0/'
-folder_path = '/home/tim/Documents/stage-m2/multi-task-her-rl/src/data/from_remote/'
-trials = ['73%_armToolstoy_her_only_2'] #list(range(30,40))#
+folder_path = "/home/tim/Documents/stage-m2/multi-task-her-rl/src/data/ArmToolsToys-v1/"
+# ~ folder_path = '/home/tim/Documents/stage-m2/multi-task-her-rl/src/data/from_remote/'
+trials = ['5000'] #list(range(30,40))#
 
 track_time = False
 live_plot = False
@@ -70,7 +71,7 @@ use_groups = True
 
 
 # ~ groups = [[0,1,2,3],[4,6,7,8,9],[5,10,11,12,13],[14,16,18,19,20,21], [17,22,23,24,25]]
-groups = [[0,1,2,3],[4],[6,7,8,9],[14] , [16] , [18,19,20,21], [5],[10,11,12,13], [15], [17], [22, 23,24,25]]
+groups = [[0,1,2,3],[4],[6,7,8,9],[26,14,27] , [16] , [18,19,20,21], [5],[10,11,12,13], [28,15,29], [17], [22, 23,24,25]]
 
 groups_colors = [[0.92, 0.28, 0.28], [0.98, 0.83, 0.37], [0.92, 0.71, 0.039], [0.90, 0.56, 0.05],
                  [0.59, 0.74, 0.93], [0.28, 0.58, 0.92], [0.054, 0.30, 0.68]]

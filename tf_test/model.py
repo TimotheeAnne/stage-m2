@@ -62,7 +62,7 @@ class Ensemble:
 
     def add_episode(self, obs, acs, returns=False):
         inputs, targets = [], []
-        for t in range(50):
+        for t in range(len(acs)):
             inp = np.concatenate((obs[t][:self.OBS_DIM],acs[t]))
             target = obs[t+1][:self.OBS_DIM] - obs[t][:self.OBS_DIM]
             bool_target = [1 if np.linalg.norm(target[i:i+2]) > 0 else -1 for i in [8,12,14,16]]
@@ -85,13 +85,19 @@ class Ensemble:
         self.y_eval = np.array(y)
 
 
-    def train(self, EPOCH=5, verbose=False, validation=False, sampling='choice'):
+    def train(self, EPOCH=5, verbose=False, validation=False, early_stopping = True, sampling='choice'):
         sampling_function = np.random.choice if sampling=='choice' else random.sample 
         for b in range(self.B):
             x, y = self.replay_buffer.sample(sampling_function, self.objects)
             if validation:
-                history = self.ensemble[b].fit(x,y, epochs=EPOCH, validation_data = (self.x_eval,self.y_eval),
-                                    shuffle=True, verbose=verbose)
+                es = tf.keras.callbacks.EarlyStopping(monitor='val_loss', min_delta=0, patience=2,
+                    verbose=0, mode='auto')
+
+                callbacks = [es] if early_stopping else []
+                
+                history = self.ensemble[b].fit(x,y, epochs=EPOCH, validation_split = 0.1,
+                                    shuffle=True, verbose=verbose, callbacks=callbacks)
+                
                 self.history[b].append(history.history)
             else:
                 self.ensemble[b].fit(x,y, epochs=EPOCH, shuffle=True, verbose=verbose)
@@ -121,26 +127,38 @@ class Ensemble:
         plt.close(fig)
 
 
-    def select_actions(self, init_obs, n_samples, GRBF=True):
+    def select_actions(self, init_obs, n_samples, Tmax=50, GRBF=True):
         if GRBF:
-            actions = np.array(sample_random_trajectories(n_samples,4,50))
+            actions = np.array(sample_random_trajectories(n_samples,4,Tmax))
         else:
-            actions = 2*np.random.random((n_samples, 50,self.ACS_DIM))-1
-        if self.trained:
-            pred_traj = self.predict_trajectory([[init_obs]]*n_samples, actions)
-            std = np.std(pred_traj, axis=0)
-            epistemic_uncertainty = np.sum( std, axis = (0,2))
-            sorted_indices = np.argsort(epistemic_uncertainty)
-            self.plot_histogram(epistemic_uncertainty)
-            self.iterations += 1
-            return actions[sorted_indices], np.sort(epistemic_uncertainty) 
-        else:
-            return actions, None
+            actions = 2*np.random.random((n_samples, Tmax,self.ACS_DIM))-1
+
+        pred_traj = self.predict_trajectory([[init_obs]]*n_samples, actions)
+        std = np.std(pred_traj, axis=0)
+        
+        epistemic_uncertainty = np.sum( std, axis = (0,2))
+        sorted_indices = np.argsort(epistemic_uncertainty)
+        self.plot_histogram(epistemic_uncertainty)
+        self.iterations += 1
+        return actions[sorted_indices], np.sort(epistemic_uncertainty), pred_traj[:,:,sorted_indices]
 
 
-    def save_exploration(self, actions, uncertainty, observations):
+    def select_action(self, obs, n_samples):
+        actions = 2*np.random.random((n_samples, self.ACS_DIM))-1
+
+        pred_traj = self.predict_trajectory([[obs]]*n_samples, actions)
+        print("shape", np.shape(pred_traj))
+        std = np.std(pred_traj, axis=0)
+        
+        epistemic_uncertainty = np.sum( std[-1], axis = (1))
+        sorted_indices = np.argsort(epistemic_uncertainty)
+        self.plot_histogram(epistemic_uncertainty)
+        self.iterations += 1
+        return actions[sorted_indices], np.sort(epistemic_uncertainty), pred_traj[:,:,sorted_indices]
+        
+    def save_exploration(self, actions, uncertainty, observations, pred):
         with open(os.path.join(self.logdir, "exploration.pk"), "ab") as f:
-            pickle.dump( [actions, uncertainty, observations], f)
+            pickle.dump( [actions, uncertainty, observations, pred], f)
 
 
     def filter(self, obs_pred, output, obs):
@@ -159,7 +177,7 @@ class Ensemble:
         for b in range(self.B):
             obs = true_traj[:,0,:self.OBS_DIM]
             pred_traj = [np.concatenate((obs,obs-true_traj[:,0,:self.OBS_DIM]),axis=1)]
-            for t in range(50):
+            for t in range(np.shape(Acs)[1]):
                 inputs = np.concatenate((obs[:,:self.OBS_DIM],Acs[:,t]), axis=1)
                 output = self.ensemble[b].predict(inputs)
                 obs_pred = output[:,:self.OBS_DIM]+obs
@@ -177,7 +195,7 @@ class Ensemble:
         for b in range(self.B):
             obs = true_traj[:,0,:self.OBS_DIM]
             pred_traj = [obs]
-            for t in range(50):
+            for t in range(np.shape(Acs)[1]):
                 inputs = np.concatenate((true_traj[:,t,:self.OBS_DIM],Acs[:,t]), axis=1)
                 output = self.ensemble[b].predict(inputs)
                 obs_pred = output[:,:self.OBS_DIM]+true_traj[:,t,:self.OBS_DIM]

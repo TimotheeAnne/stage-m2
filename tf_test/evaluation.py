@@ -7,16 +7,18 @@ import numpy as np
 class Evaluator:
     def __init__(self, training_data, eval_data, logdir, OBS_DIM):
         self.logdir = logdir
-        self.training_data = training_data
-
         self.OBS_DIM = OBS_DIM
-        self.oracle = OracleRewardFuntion(26)
+        self.oracle = OracleRewardFuntion(30)
+        self.iteration = 0
+        self.training_data = training_data
         with open( eval_data, 'rb') as f:
             self.eval_data = pickle.load(f)
 
     def eval(self, DE):
-        self._eval(DE, "training_data")
+        if not self.training_data is None:
+            self._eval(DE, "training_data")
         self._eval(DE, "evaluation_data")
+        self.iteration += 1
 
     def _eval(self, DE, data_type):
         [true_traj, Acs] = self.training_data if data_type == "training_data" else self.eval_data
@@ -33,10 +35,10 @@ class Evaluator:
                 
         confusion_matrix = self.compute_confusion_matrix(true_rewards, predict_rewards)
 
-        with open(self.logdir+"/eval_"+data_type+".pk",'bw') as f:
-            pickle.dump((traj_pred,trans_pred,true_traj),f)
+        with open(self.logdir+"/eval_"+data_type+"_"+str(self.iteration)+".pk",'bw') as f:
+            pickle.dump((traj_pred,trans_pred),f)
 
-        with open(self.logdir+"/confusion_matrix_"+data_type+".pk",'bw') as f:
+        with open(self.logdir+"/confusion_matrix_"+data_type+"_"+str(self.iteration)+".pk",'bw') as f:
             pickle.dump(confusion_matrix,f)
 
 
