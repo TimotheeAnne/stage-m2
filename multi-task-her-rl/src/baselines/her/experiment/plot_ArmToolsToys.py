@@ -61,9 +61,9 @@ my_colors = ['crimson','royalblue','forestgreen','darkorange','orchid']
 
 # ~ folder_path = '/home/tim/Documents/stage-m2/multi-task-her-rl/src/data/myMultiTaskFetchArmNLP-v0/'
 # ~ folder_path = '/home/tim/Documents/stage-m2/multi-task-her-rl/src/data/MultiTaskFetchArmNLP1-v0/'
-folder_path = "/home/tim/Documents/stage-m2/multi-task-her-rl/src/data/ArmToolsToys-v1/"
-# ~ folder_path = '/home/tim/Documents/stage-m2/multi-task-her-rl/src/data/from_remote/'
-trials = ['5000'] #list(range(30,40))#
+# ~ folder_path = "/home/tim/Documents/stage-m2/multi-task-her-rl/src/data/ArmToolsToys-v1/"
+folder_path = '/home/tim/Documents/stage-m2/multi-task-her-rl/src/data/from_remote/'
+trials = ['test_armToolsToys_full'] #list(range(30,40))#
 
 track_time = False
 live_plot = False

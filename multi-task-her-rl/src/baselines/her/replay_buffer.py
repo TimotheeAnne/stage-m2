@@ -75,6 +75,9 @@ class ReplayBuffer:
         transitions = dict()
         for key in ['o', 'u']:
             transitions[key] = self.buffers[key][ind] 
+        
+        
+        
         return transitions
 
 

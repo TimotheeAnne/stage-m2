@@ -32,7 +32,7 @@ os.environ["CUDA_VISIBLE_DEVICES"] = ''
 #
 
 NUM_CPU = 1
-NB_EPOCHS = 100
+NB_EPOCHS = 1
 NB_GOALS = 30
 
 
@@ -62,16 +62,18 @@ def train(policy, env_worker, model_worker, evaluator, reward_function, model_bu
         # train
         """ Collecting Data for training the model """
         env_worker.clear_history()
-
+        observations, actions = np.zeros((0,51,36)), np.zeros((0,50,4))
         for i_c in my_tqdm(range(n_collect)):
             # interact with the environment
             episode, goals_reached_ids = env_worker.generate_rollouts()
-            # save experience in memory
-            model_buffer.store_episode(episode, goals_reached_ids)
-
+            # save experience
+            observations = np.concatenate((observations, episode['o']))
+            actions = np.concatenate((actions, episode['u']))
+        
+        model_worker.envs[0].unwrapped.add_episodes(observations, actions)
+        
         """ Training the model"""
-        samples = model_buffer.sample_transition_for_model(n_collect*(epoch+1))
-        model_worker.envs[0].unwrapped.train(samples)
+        model_worker.envs[0].unwrapped.train()
         
         """ Training DDPG on the model """
         model_worker.clear_history()
@@ -88,13 +90,8 @@ def train(policy, env_worker, model_worker, evaluator, reward_function, model_bu
 
         # test
         evaluator.clear_history()
-        episodes = []
         for _ in range(n_test_rollouts):
-            episode, goals_reached_ids = evaluator.generate_rollouts()
-            episodes.append( (episode, goals_reached_ids ))
-        # ~ if rank == 0:
-            # ~ with open(os.path.join(logger.get_dir(), 'eval_episodes.pk'), 'ba') as f:
-                # ~ pickle.dump(episodes, f)
+            evaluator.generate_rollouts()
 
         best_success_rate, last_time = log(epoch, evaluator, model_worker, policy, best_success_rate, save_policies, best_policy_path, latest_policy_path,
             policy_save_interval, rank, periodic_policy_path, first_time, last_time)
