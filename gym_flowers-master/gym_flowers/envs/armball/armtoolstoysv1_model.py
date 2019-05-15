@@ -11,9 +11,7 @@ import sys
 
 OBS_DIM = 18
 
-def compute_samples(Episodes):
-    true_traj, Acs = Episodes['o'], Episodes['u']
-    
+def compute_samples(true_traj, Acs):
     Inputs = []
     Targets = []
     moved_objects = 0
@@ -57,13 +55,15 @@ class ArmToolsToysV1_model(gym.Env):
         self.eval_data = "../../../../../tf_test/data/ArmToolsToy_1000pertinent.pk"
         self.replay_buffer = ReplayBuffer()
         self.model = self.nn_constructor(self.model_dir)
-        self.EPOCH = 50
+        self.EPOCH = 10
         self.iteration = 0
+
 
     def init(self, oracle, rank, logdir):
         self.oracle = oracle(30)
         self.rank = rank
         self.logdir = logdir
+
 
     def nn_constructor(self,model_dir):
         """ Load BNN """
@@ -90,22 +90,29 @@ class ArmToolsToysV1_model(gym.Env):
         self.weight_init = model.get_weights()
         return model
 
-    def train(self, Episodes):
+
+    def add_episodes(self, observations, actions):
         with open(self.logdir+"/final_observations_r"+str(self.rank)+"_"+str(self.iteration)+".pk",'bw') as f:
-            pickle.dump(np.array(Episodes['o'])[:,-1,:18],f)
-        (inputs, targets) = compute_samples(Episodes)
+            pickle.dump(observations[:,-1,:18],f)
+        (inputs, targets) = compute_samples(observations, actions)
         self.replay_buffer.add_samples(inputs,targets)
-        (x_train, y_train) = self.replay_buffer.sample(random.sample)
-        es = tf.keras.callbacks.EarlyStopping(monitor='val_loss', min_delta=0, patience=2,verbose=0, mode='auto')
-        self.model.fit(x_train, y_train, epochs=self.EPOCH, shuffle=True, verbose=False, validation_split=0.1, callbacks=[es])
+
+
+    def train(self):
+        for _ in range(10):
+            (x_train, y_train) = self.replay_buffer.sample(random.sample)
+            es = tf.keras.callbacks.EarlyStopping(monitor='val_loss', min_delta=0, patience=2,verbose=0, mode='auto')
+            self.model.fit(x_train, y_train, epochs=self.EPOCH, shuffle=True, verbose=False, validation_split=0.1, callbacks=[es])
+
         self.eval()
         self.iteration += 1
-        
+
+
     def seed(self, seed):
         random.seed(seed)
         np.random.seed(seed)
         return seed
-        
+
 
     def step(self, action):
         """ Compute the next observation """
@@ -268,15 +275,19 @@ class ReplayBuffer:
     
     def sample(self, sampling_function, objects=range(5)):
         sizes = [len(self.indexes[i]) for i in range(5)]
-        if np.sum(sizes[1:]) <= 50:
-            n_sample = sizes[0]
-        elif np.sum(sizes[3:]) <= 50:
-            n_sample = np.sum(sizes[1:])
+        
+        if np.sum(sizes[1:]) <= 100:
+            n_sample = sizes.copy()
+        elif np.sum(sizes[3:]) <= 100:
+            n_sample = sizes.copy()
+            n_sample[0] = np.sum(sizes[1:])
         else:
-            n_sample = np.sum(sizes[3:])
+            n_sample[1] = np.sum(sizes[3:])
+            n_sample[2] = np.sum(sizes[3:])
+            n_sample[0] = np.sum(n_sample[1:])
         samples_indexes = []
         for i in objects:
-            samples_indexes += list(sampling_function( self.indexes[i], min( sizes[i], n_sample)))
+            samples_indexes += list(sampling_function( self.indexes[i], min( sizes[i], n_sample[i])))
         
         count = [0 for _ in range(5)]
 
