@@ -23,8 +23,6 @@ import src.baselines.common.tf_util as U
 
 
 # Me
-import gym_myFetchPush
-import gym_myGridEnv
 from plot_eval_episode import plot_eval_episodes
 from src.baselines.her.replay_buffer import ReplayBuffer
 from src.baselines.her.ddpg import dims_to_shapes
