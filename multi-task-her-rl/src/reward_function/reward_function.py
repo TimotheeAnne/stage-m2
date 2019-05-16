@@ -1,6 +1,6 @@
 import numpy as np
 # ~ from mpi4py import MPI
-from task_reward_functions import *
+from .task_reward_functions import *
 
 
 def eucl_dist(pos1, pos2):
