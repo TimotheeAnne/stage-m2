@@ -282,6 +282,7 @@ class ReplayBuffer:
             n_sample = sizes.copy()
             n_sample[0] = np.sum(sizes[1:])
         else:
+            n_sample = sizes.copy()
             n_sample[1] = np.sum(sizes[3:])
             n_sample[2] = np.sum(sizes[3:])
             n_sample[0] = np.sum(n_sample[1:])
