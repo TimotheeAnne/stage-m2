@@ -7,3 +7,5 @@
 /mypets/log/
 /tf_test/data/
 /tf_test/log/
+/tf_test/log_exploration/
+/armtolstoy/arm_run_saves

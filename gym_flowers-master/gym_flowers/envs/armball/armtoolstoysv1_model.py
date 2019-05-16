@@ -300,7 +300,7 @@ class ReplayBuffer:
             sample = self.buffer[idx]
             x.append(sample['input'])
             y.append(sample['target'])
-        print("Training transitions: ", count)
+        print("Training transitions: ", sizes, count)
         return np.array(x), np.array(y)
 
     def pretty_print(self):

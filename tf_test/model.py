@@ -13,7 +13,7 @@ FIGSIZE = (16,9)
 
 class Ensemble:
     """ Deterministic ensemble transition model """
-    def __init__(self, obs_d, acs_d, out_d, logdir, init_samples=100, B=5, reg = 0, objects=None):
+    def __init__(self, obs_d, acs_d, out_d, logdir, B=5, reg = 0, objects=None):
         self.ACS_DIM = acs_d
         self.OUTPUT_DIM = out_d
         self.OBS_DIM = obs_d
@@ -25,7 +25,6 @@ class Ensemble:
         self.logdir = logdir 
         self.trained = False
         self.iterations = 0
-        self.init_samples = init_samples
         self.x_eval = []
         self.y_eval = []
         self.history = [ [] for _ in range(self.B)]
@@ -53,10 +52,9 @@ class Ensemble:
                           )
             self.ensemble.append(model)
 
-    def add_episodes(self, obs, acs, n_episodes=-1):
+    def add_episodes(self, obs, acs):
         assert( len(obs) == len(acs))
-        episodes = range(len(obs)) if n_episodes==-1 else random.sample( range(len(obs)), n_episodes)
-        for j in episodes:
+        for j in range(len(obs)):
             self.add_episode( obs[j], acs[j])
 
 
@@ -104,6 +102,11 @@ class Ensemble:
         self.trained = True
 
 
+    def save_ensemble(self):
+        for b in range(self.B):
+            self.ensemble[b].save_weights(self.logdir+'/model'+str(b)+'.h5')
+
+
     def plot_training(self):
         MSE = []
         Val_MSE = []
@@ -121,41 +124,37 @@ class Ensemble:
     def plot_histogram(self, data):
         fig, ax = plt.subplots(figsize=FIGSIZE) 
         plt.hist(data)
-        plt.xlim((1,3000))
         plt.xscale('log')
         plt.savefig(self.logdir+'/uncertitude_'+str(self.iterations)+".svg", format='svg')
         plt.close(fig)
 
 
-    def select_actions(self, init_obs, n_samples, Tmax=50, GRBF=True):
+    def select_actions(self, init_obs, n_samples, n_elites, Tmax=50, GRBF=True, exploration=False):
+        assert( n_elites <= n_samples)
         if GRBF:
             actions = np.array(sample_random_trajectories(n_samples,4,Tmax))
         else:
-            actions = 2*np.random.random((n_samples, Tmax,self.ACS_DIM))-1
+            actions = 2*np.random.random((n_samples, Tmax, self.ACS_DIM))-1
+        if exploration:
+            pred_traj = self.predict_trajectory([[init_obs]]*n_samples, actions)
+            std = np.std(pred_traj, axis=0)[:,:,:18]
+            norm = np.mean(std, axis=1)
+            for t in range(len(norm)):
+                for d in range(len(norm[t])):
+                    if norm[t][d] == 0:
+                        norm[t][d] = 1
+            epistemic_uncertainty = np.mean( np.swapaxes(std,0,1)/norm, axis = (1,2))
+            sorted_indices = np.argsort(epistemic_uncertainty)
+            # ~ self.plot_histogram(epistemic_uncertainty)
+            self.iterations += 1
+            actions = actions[sorted_indices[-n_elites:]]
+            eu = epistemic_uncertainty[sorted_indices[-n_elites:]]
+            pred_traj = pred_traj[:,:,sorted_indices[-n_elites:]] 
+            return actions, eu, pred_traj
+        else: 
+            return actions
 
-        pred_traj = self.predict_trajectory([[init_obs]]*n_samples, actions)
-        std = np.std(pred_traj, axis=0)
-        
-        epistemic_uncertainty = np.sum( std, axis = (0,2))
-        sorted_indices = np.argsort(epistemic_uncertainty)
-        self.plot_histogram(epistemic_uncertainty)
-        self.iterations += 1
-        return actions[sorted_indices], np.sort(epistemic_uncertainty), pred_traj[:,:,sorted_indices]
 
-
-    def select_action(self, obs, n_samples):
-        actions = 2*np.random.random((n_samples, self.ACS_DIM))-1
-
-        pred_traj = self.predict_trajectory([[obs]]*n_samples, actions)
-        print("shape", np.shape(pred_traj))
-        std = np.std(pred_traj, axis=0)
-        
-        epistemic_uncertainty = np.sum( std[-1], axis = (1))
-        sorted_indices = np.argsort(epistemic_uncertainty)
-        self.plot_histogram(epistemic_uncertainty)
-        self.iterations += 1
-        return actions[sorted_indices], np.sort(epistemic_uncertainty), pred_traj[:,:,sorted_indices]
-        
     def save_exploration(self, actions, uncertainty, observations, pred):
         with open(os.path.join(self.logdir, "exploration.pk"), "ab") as f:
             pickle.dump( [actions, uncertainty, observations, pred], f)

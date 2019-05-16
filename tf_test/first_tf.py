@@ -204,15 +204,15 @@ def evaluation(model, norm, data_type="eval", epoch='final'):
 
 
 model = tf.keras.models.Sequential([
-    tf.keras.layers.Dense(512, activation=tf.nn.relu, input_shape=[INPUT_DIM], 
+    tf.keras.layers.Dense(256, activation=tf.nn.relu, input_shape=[INPUT_DIM], 
                 bias_initializer = tf.constant_initializer(value=0.),
                 kernel_initializer = tf.contrib.layers.xavier_initializer(),
                 kernel_regularizer = tf.keras.regularizers.l2(l=REG)),
-    tf.keras.layers.Dense(512, activation=tf.nn.relu,
+    tf.keras.layers.Dense(256, activation=tf.nn.relu,
                 bias_initializer = tf.constant_initializer(value=0.),
                 kernel_initializer = tf.contrib.layers.xavier_initializer(),
                 kernel_regularizer = tf.keras.regularizers.l2(l=REG)),
-    tf.keras.layers.Dense(512, activation=tf.nn.relu,
+    tf.keras.layers.Dense(256, activation=tf.nn.relu,
                 bias_initializer = tf.constant_initializer(value=0.),
                 kernel_initializer = tf.contrib.layers.xavier_initializer(),
                 kernel_regularizer = tf.keras.regularizers.l2(l=REG)),
@@ -225,6 +225,7 @@ model.compile(optimizer='adam',
               metrics=['mean_squared_error']
               )
 
+print(model.trainable_variables)
 # ~ model_dir = "/home/tim/Documents/stage-m2/gym-myFetchPush/log/tf25/"
 # ~ model.load_weights(model_dir+'model.h5')
 # ~ norm.load(model_dir)
@@ -237,25 +238,25 @@ model.compile(optimizer='adam',
                         # ~ )
 
 
-for epoch in range(EPOCH):
-    history = model.fit(x_train, y_train,
-                        epochs=5,
-                        #validation_split=0.1,
-                        validation_data = (x_eval,y_eval),
-                        shuffle=True
-                        )
-    evaluation(model,norm, "eval", epoch=epoch)
+# ~ for epoch in range(EPOCH):
+    # ~ history = model.fit(x_train, y_train,
+                        # ~ epochs=5,
+                        # ~ #validation_split=0.1,
+                        # ~ validation_data = (x_eval,y_eval),
+                        # ~ shuffle=True
+                        # ~ )
+    # ~ evaluation(model,norm, "eval", epoch=epoch)
     
-""" Saving """
-model.save_weights(logdir+'/model.h5')
-with open(os.path.join(logdir, "config.txt"), "w") as f:
-    def write(x):
-        f.write(x+"\n")
-    model.summary(print_fn=write)
-norm.save()
+# ~ """ Saving """
+# ~ model.save_weights(logdir+'/model.h5')
+# ~ with open(os.path.join(logdir, "config.txt"), "w") as f:
+    # ~ def write(x):
+        # ~ f.write(x+"\n")
+    # ~ model.summary(print_fn=write)
+# ~ norm.save()
 
-""" Evaluation """
-data = history.history
-plot_MSE(data)
-evaluation(model,norm, "eval")
-evaluation(model,norm, "training")
+# ~ """ Evaluation """
+# ~ data = history.history
+# ~ plot_MSE(data)
+# ~ evaluation(model,norm, "eval")
+# ~ evaluation(model,norm, "training")

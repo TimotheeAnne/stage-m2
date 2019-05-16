@@ -11,7 +11,7 @@ import time
 
 true_traj, Acs = [], []
 count = 0
-for i in tqdm(range(100)):
+for i in tqdm(range(1000)):
     actions = 2*np.random.random((50,4))-1
 
     traj = []
@@ -28,7 +28,7 @@ for i in tqdm(range(100)):
         obs, reward, done, info = env.step(actions[t])
         traj.append(obs.copy())
         
-    if np.linalg.norm( obs[32:]) > 0:
+    if np.linalg.norm( obs[24:]) > 0:
         count += 1 
         Acs.append(actions)
         true_traj.append(traj)
