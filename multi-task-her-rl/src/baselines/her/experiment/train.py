@@ -32,7 +32,7 @@ os.environ["CUDA_VISIBLE_DEVICES"] = ''
 #
 
 NUM_CPU = 1
-NB_EPOCHS = 1
+NB_EPOCHS = 10
 NB_GOALS = 30
 
 
@@ -122,7 +122,10 @@ def launch(env, trial_id, n_epochs, num_cpu, seed, replay_strategy, policy_save_
     
     # Configure logging
     if rank == 0:
-        logdir = find_save_path('../../../data/' + env + "/", trial_id)
+        if os.getlogin() == 'tim':
+            logdir = find_save_path('../../../data/' + env + "/", trial_id)
+        else:
+            logdir = find_save_path('/lustre/tanne/data/' + env + "/", trial_id)
         logger.configure(dir=logdir)
     else:
         logdir = None
