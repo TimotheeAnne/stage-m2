@@ -58,15 +58,14 @@ evaluator = Evaluator( None, eval_data, logdir, OBS_DIM )
 env = gym.make('ArmToolsToys-v1')
 
 Observations = []
-Actions = []
 
 """ Episodic Exploration """
 for iteration in tqdm(range(N_ITERATIONS)):
-    for _ in range(N_EXPLORATIONS//(N_ELITES*N_ITERATIONS)):
+    for _ in tqdm(range(N_EXPLORATIONS//(N_ELITES*N_ITERATIONS))):
         """ Select an action sequence to perform """
         Tmax = 50
         obs = env.reset()
-        actions, uncertainty, pred = DE.select_actions(obs, N_POPULATION, N_ELITES, exploration = True, Tmax=Tmax, GRBF=False)
+        actions, uncertainty, pred = DE.select_actions(obs, N_POPULATION, N_ELITES, exploration = iteration, Tmax=Tmax, GRBF=False)
         observations = [[obs.copy()] for _ in range(N_ELITES)]
         
         """ Perform the action sequence """
@@ -76,22 +75,26 @@ for iteration in tqdm(range(N_ITERATIONS)):
                 # ~ #env.render()
                 obs, _, _, _ = env.step(actions[j][t])
                 observations[j] = np.concatenate( (observations[j], [obs]))
+            Observations.append( obs[:18])
 
-        DE.save_exploration(actions, uncertainty, observations, pred)
+        if iteration > 0:
+            DE.save_exploration(actions, uncertainty, observations, pred)
         
         """ Add the collected data to the replay buffer """
         DE.add_episodes(observations,  actions)
-        DE.replay_buffer.pretty_print()
 
-        """ Train the ensemble """ 
-        for i in range(EPOCH//STEP):
-            DE.train(STEP, verbose=True, validation=True, sampling='choice')
 
-        DE.plot_training()
+    DE.replay_buffer.pretty_print()
+
+    """ Train the ensemble """ 
+    for i in range(EPOCH//STEP):
+        DE.train(STEP, verbose=False, validation=True, sampling='choice')
+
+    DE.plot_training()
 
     """ Evaluate """
     with open(logdir+"/final_observations_"+str(iteration)+".pk", 'bw') as f:
-        pickle.dump(np.array(observations), f)
+        pickle.dump(np.array(Observations), f)
     evaluator.eval(DE)
 
 DE.save_ensemble()

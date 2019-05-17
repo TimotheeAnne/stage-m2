@@ -152,7 +152,7 @@ class Ensemble:
             pred_traj = pred_traj[:,:,sorted_indices[-n_elites:]] 
             return actions, eu, pred_traj
         else: 
-            return actions
+            return actions[:n_elites], None, None
 
 
     def save_exploration(self, actions, uncertainty, observations, pred):
