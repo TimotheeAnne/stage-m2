@@ -7,15 +7,17 @@ import datetime
 import os 
 import numpy as np
 
+os.environ["CUDA_VISIBLE_DEVICES"] = ''
+
 OBS_DIM = 18
 ACS_DIM = 4
 OUTPUT_DIM = 22
-EPOCH = 50
+EPOCH = 5
 STEP = 5
 N_EXPLORATIONS = None
 N_POPULATION = None 
 N_SAMPLES = 10000
-N_ITERATIONS = 10
+N_ITERATIONS = 1
 REG = 0.000
 training_data = None
 eval_data = None
@@ -26,7 +28,7 @@ GRBF = False
 
 # ~ training_data = "/home/tim/Documents/stage-m2/tf_test/data/ArmToolsToy-v1_4000_train.pk"
 eval_data = "/home/tim/Documents/stage-m2/tf_test/data/ArmToolsToy_1000pertinent.pk"
-# ~ eval_data = "/home/tim/Documents/stage-m2/armtolstoy/arm_run_saves/memory_based0/"
+training_data = "/home/tim/Documents/stage-m2/armtolstoy/arm_run_saves/memory_based0/"
 
 timestamp = datetime.datetime.now()
 logdir = './log/'+str(timestamp)
@@ -50,7 +52,7 @@ config += "GRBF: "+ str(GRBF) + "\n"
 with open(logdir+"/config.txt", 'w') as f:
     f.write(config)
 
-DE = Ensemble(OBS_DIM, ACS_DIM, OUTPUT_DIM, reg=REG, B=B, init_samples = N_SAMPLES, logdir=logdir, objects=objects)
+DE = Ensemble(OBS_DIM, ACS_DIM, OUTPUT_DIM, reg=REG, B=B, logdir=logdir, objects=objects)
 evaluator = Evaluator( None, eval_data, logdir, OBS_DIM )
 env = gym.make('ArmToolsToys-v1')
 
@@ -76,12 +78,12 @@ for iteration in tqdm(range(N_ITERATIONS)):
     elif 'armtolstoy' in training_data:
         with open(training_data + 'imgep_' + str(iteration) +'.pk', 'br') as f:
             [observations, actions] = pickle.load(f)
-            DE.add_episodes(observations, actions, N_INIT_SAMPLES)
-            Observations = observations.copy()
+            DE.add_episodes(observations, actions)
+            Observations = np.array(observations)[:,-1,:18]
     else:
         with open(training_data, 'br') as f:
             [observations, actions] = pickle.load(f)
-            DE.add_episodes(observations, actions, N_INIT_SAMPLES)
+            DE.add_episodes(observations, actions)
             Observations = observations.copy()
 
 
