@@ -54,7 +54,6 @@ class ReplayBuffer:
     
     def sample(self, sampling_function, objects=range(5)):
         sizes = [len(self.indexes[i]) for i in range(5)]
-        
         if np.sum(sizes[1:]) <= 100:
             n_sample = sizes.copy()
         elif np.sum(sizes[3:]) <= 100:
@@ -69,17 +68,11 @@ class ReplayBuffer:
         for i in objects:
             samples_indexes += list(sampling_function( self.indexes[i], min( sizes[i], n_sample[i])))
         
-        # ~ count = [0 for _ in range(5)]
-
         x, y = [], []
         for idx in samples_indexes:
-            # ~ for i in range(5):
-                # ~ if idx in self.indexes[i]:
-                    # ~ count[i] += 1
             sample = self.buffer[idx]
             x.append(sample['input'])
             y.append(sample['target'])
-        # ~ print("Training transitions: ", count)
         return np.array(x), np.array(y)
 
     def pretty_print(self):

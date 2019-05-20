@@ -12,17 +12,17 @@ import numpy as np
 OBS_DIM = 18
 ACS_DIM = 4
 OUTPUT_DIM = 22
-EPOCH = 10
+EPOCH = 20
 STEP = 5
 N_EXPLORATIONS = None
 N_POPULATION = None 
-N_SAMPLES = 10000
+N_SAMPLES = 500
 N_ITERATIONS = 10
 REG = 0.000
 training_data = None
 eval_data = None
 episodic_exploration = False
-B = 5
+B = 20
 objects = [0,1,2,3,4]
 GRBF = False
 
@@ -61,42 +61,38 @@ Observations = []
 for iteration in tqdm(range(N_ITERATIONS)):
     """ Generate episodes """
     if training_data is None:
-        for _ in range(N_SAMPLES):
-            observation = [env.reset()]
-            actions = DE.select_actions( observation[0], 1, 1, GRBF=GRBF, exploration=False)[0]
-            """ Perform the action sequence """
-            
-            for t in range(50):
-                # ~ env.render()
-                obs, _, _, _ = env.step(actions[t])
-                observation.append( obs.copy())
+        for b in range(DE.B):
+            for _ in range(N_SAMPLES):
+                observation = [env.reset()]
+                actions = DE.select_actions( observation[0], 1, 1, GRBF=GRBF, exploration=False)[0]
+                """ Perform the action sequence """
                 
-            """ Add the collected data to the replay buffer """
-            DE.add_episode( observation,  actions)
-            Observations.append(observation[-1][:18])
+                for t in range(50):
+                    # ~ env.render()
+                    obs, _, _, _ = env.step(actions[t])
+                    observation.append( obs.copy())
+                    
+                """ Add the collected data to the replay buffer """
+                DE.add_episode(observation,  actions, b)
+                Observations.append(observation[-1][:18])
+            DE.replay_buffers[b].pretty_print()
 
     elif 'armtolstoy' in training_data:
         with open(training_data + 'imgep_' + str(iteration) +'.pk', 'br') as f:
             [observations, actions] = pickle.load(f)
-            DE.add_episodes(observations, actions)
+            observations, actions = np.array(observations), np.array(actions)
+            indexes = np.array(range(len(observations)))
+            np.random.shuffle(indexes)
+            split_indexes = np.split(indexes, DE.B)
+            for b in range(DE.B):
+                DE.add_episodes(observations[split_indexes[b]], actions[split_indexes[b]], b)
+                DE.replay_buffers[b].pretty_print()
             Observations = np.array(observations)[:,-1,:18]
-    else:
-        with open(training_data, 'br') as f:
-            [observations, actions] = pickle.load(f)
-            DE.add_episodes(observations, actions)
-            Observations = np.array(observations)[:,-1,:18]
-
-
-    if not eval_data is None:
-        with open(eval_data, 'br') as f:
-            [observations, actions] = pickle.load(f)
-            DE.add_validation( observations, actions)
             
-    DE.replay_buffer.pretty_print()
-
+            
     """ Training the network """
     for i in range(EPOCH//STEP):
-        DE.train(STEP, verbose=True, validation=True, sampling='choice')
+        DE.train(STEP, verbose=False, validation=True, sampling='sample')
 
     DE.plot_training()
 

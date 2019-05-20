@@ -20,7 +20,7 @@ class Ensemble:
         self.INPUT_DIM = self.ACS_DIM + self.OBS_DIM
         self.REG = reg
         self.B = B
-        self.replay_buffer = ReplayBuffer()
+        self.replay_buffers = [ReplayBuffer() for _ in range(self.B)]
         self.ensemble = []
         self.logdir = logdir 
         self.trained = False
@@ -52,13 +52,13 @@ class Ensemble:
                           )
             self.ensemble.append(model)
 
-    def add_episodes(self, obs, acs):
+    def add_episodes(self, obs, acs, b):
         assert( len(obs) == len(acs))
         for j in range(len(obs)):
-            self.add_episode( obs[j], acs[j])
+            self.add_episode( obs[j], acs[j], b)
 
 
-    def add_episode(self, obs, acs, returns=False):
+    def add_episode(self, obs, acs, b):
         inputs, targets = [], []
         for t in range(len(acs)):
             inp = np.concatenate((obs[t][:self.OBS_DIM],acs[t]))
@@ -66,27 +66,24 @@ class Ensemble:
             bool_target = [1 if np.linalg.norm(target[i:i+2]) > 0 else -1 for i in [8,12,14,16]]
             inputs.append(inp)
             targets.append(np.concatenate((target,bool_target)))
-        if returns:
-            return (inputs,targets)
-        else:
-            self.replay_buffer.add_samples( inputs, targets)
+        self.replay_buffers[b].add_samples( inputs, targets)
 
 
-    def add_validation(self, obs, acs):
-        assert( len(obs) == len(acs))
-        x ,y = [], []
-        for j in range(len(obs)):
-            (inputs,targets) = self.add_episode( obs[j], acs[j], returns=True)
-            x += inputs
-            y += targets
-        self.x_eval = np.array(x)
-        self.y_eval = np.array(y)
+    # ~ def add_validation(self, obs, acs):
+        # ~ assert( len(obs) == len(acs))
+        # ~ x ,y = [], []
+        # ~ for j in range(len(obs)):
+            # ~ (inputs,targets) = self.add_episode(obs[j], acs[j], returns=True)
+            # ~ x += inputs
+            # ~ y += targets
+        # ~ self.x_eval = np.array(x)
+        # ~ self.y_eval = np.array(y)
 
 
     def train(self, EPOCH=5, verbose=False, validation=False, early_stopping = True, sampling='choice'):
         sampling_function = np.random.choice if sampling=='choice' else random.sample 
         for b in range(self.B):
-            x, y = self.replay_buffer.sample(sampling_function, self.objects)
+            x, y = self.replay_buffers[b].sample(sampling_function, self.objects)
             if validation:
                 es = tf.keras.callbacks.EarlyStopping(monitor='val_loss', min_delta=0, patience=2,
                     verbose=0, mode='auto')
@@ -104,7 +101,9 @@ class Ensemble:
 
     def save_ensemble(self):
         for b in range(self.B):
-            self.ensemble[b].save_weights(self.logdir+'/model'+str(b)+'.h5')
+            weights = self.ensemble[b].get_weights()
+            with open(self.logdir+'/model'+str(b)+'.pk', 'bw') as f:
+                pickle.dump( weights, f) 
 
 
     def plot_training(self):
@@ -209,10 +208,10 @@ class Ensemble:
         fig, ax = plt.subplots(figsize=FIGSIZE)
         for b in range(self.B):
             if b == 0:
-                plt.plot( MSE[b], label="validation "+str(b), color = colors[b], ls=':')
+                plt.plot( MSE[b], label="validation "+str(b), color = colors[b%5], ls=':')
             else:
-                plt.plot( MSE[b], color = colors[b], ls=':')
-            plt.plot( Val_MSE[b], label="training "+str(b), color = colors[b])
+                plt.plot( MSE[b], color = colors[b%5], ls=':')
+            plt.plot( Val_MSE[b], label="training "+str(b), color = colors[b%5])
         plt.legend()
         plt.yscale('log')
         plt.xlabel('epochs')

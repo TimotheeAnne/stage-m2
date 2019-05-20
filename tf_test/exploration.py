@@ -15,14 +15,14 @@ OUTPUT_DIM = 22
 REG = 0.000
 objects = [0,1,2,3,4]
 
-EPOCH = 50
+EPOCH = 20
 STEP = 5
-N_EXPLORATIONS = 100000
+N_EXPLORATIONS = 500
 N_POPULATION = 1000
 N_ELITES = N_POPULATION//10
 N_SAMPLES = None
 N_ITERATIONS = 10
-B = 5
+B = 20
 GRBF = False
 
 training_data = None
@@ -64,34 +64,33 @@ Observations = []
 
 """ Episodic Exploration """
 for iteration in tqdm(range(N_ITERATIONS)):
-    for _ in tqdm(range(N_EXPLORATIONS//(N_ELITES*N_ITERATIONS))):
-        """ Select an action sequence to perform """
-        Tmax = 50
-        obs = env.reset()
-        actions, uncertainty, pred = DE.select_actions(obs, N_POPULATION, N_ELITES, exploration = iteration, Tmax=Tmax, GRBF=False)
-        observations = [[obs.copy()] for _ in range(N_ELITES)]
-        
-        """ Perform the action sequence """
-        for j in range(N_ELITES):
+    for b in tqdm(range(DE.B)):
+        for _ in range(N_EXPLORATIONS//N_ELITES):
+            """ Select an action sequence to perform """
+            Tmax = 50
             obs = env.reset()
-            for t in range(Tmax):
-                # ~ #env.render()
-                obs, _, _, _ = env.step(actions[j][t])
-                observations[j] = np.concatenate( (observations[j], [obs]))
-            Observations.append( obs[:18])
+            actions, uncertainty, pred = DE.select_actions(obs, N_POPULATION, N_ELITES, exploration = iteration, Tmax=Tmax, GRBF=False)
+            observations = [[obs.copy()] for _ in range(N_ELITES)]
+            
+            """ Perform the action sequence """
+            for j in range(N_ELITES):
+                obs = env.reset()
+                for t in range(Tmax):
+                    # ~ #env.render()
+                    obs, _, _, _ = env.step(actions[j][t])
+                    observations[j] = np.concatenate( (observations[j], [obs]))
+                Observations.append( obs[:18])
 
-        if iteration > 0:
-            DE.save_exploration(actions, uncertainty, observations, pred)
-        
-        """ Add the collected data to the replay buffer """
-        DE.add_episodes(observations,  actions)
-
-
-    DE.replay_buffer.pretty_print()
+            if iteration > 0:
+                DE.save_exploration(actions, uncertainty, observations, pred)
+            
+            """ Add the collected data to the replay buffer """
+            DE.add_episodes(observations,  actions, b)
+        # ~ DE.replay_buffers[b].pretty_print()
 
     """ Train the ensemble """ 
     for i in range(EPOCH//STEP):
-        DE.train(STEP, verbose=False, validation=True, sampling='choice')
+        DE.train(STEP, verbose=False, validation=True, sampling='sample')
 
     DE.plot_training()
 
