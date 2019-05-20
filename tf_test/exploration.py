@@ -7,6 +7,8 @@ import datetime
 import os 
 import numpy as np
 
+os.environ["CUDA_VISIBLE_DEVICES"] = ''
+
 OBS_DIM = 18
 ACS_DIM = 4
 OUTPUT_DIM = 22
@@ -33,6 +35,7 @@ eval_data = "/home/tim/Documents/stage-m2/tf_test/data/ArmToolsToy_1000pertinent
 timestamp = datetime.datetime.now()
 logdir = './log_exploration/'+str(timestamp)
 os.makedirs(logdir)
+
 
 config = "" 
 config += "EPOCH: "+str(EPOCH) +"\n"

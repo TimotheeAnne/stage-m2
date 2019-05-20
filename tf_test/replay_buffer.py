@@ -9,7 +9,7 @@ class ReplayBuffer:
         
         self.indexes = [[],[],[],[],[]]
         self.current_size = 0
-        self.max_size = 2000000
+        self.max_size = 5000000
         self.head = 0
 
     def add_samples(self, inputs, targets):

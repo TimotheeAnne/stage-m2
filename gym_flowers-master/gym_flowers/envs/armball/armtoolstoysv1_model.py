@@ -59,10 +59,12 @@ class ArmToolsToysV1_model(gym.Env):
         self.iteration = 0
 
 
-    def init(self, oracle, rank, logdir):
+    def init(self, oracle, rank, logdir, weights=None):
         self.oracle = oracle(30)
         self.rank = rank
         self.logdir = logdir
+        if not weights is None:
+            self.model.load_weights(weights+"model"+str(self.rank)+".h5")
 
 
     def nn_constructor(self,model_dir):
@@ -294,13 +296,13 @@ class ReplayBuffer:
 
         x, y = [], []
         for idx in samples_indexes:
-            for i in range(5):
-                if idx in self.indexes[i]:
-                    count[i] += 1
+            # ~ for i in range(5):
+                # ~ if idx in self.indexes[i]:
+                    # ~ count[i] += 1
             sample = self.buffer[idx]
             x.append(sample['input'])
             y.append(sample['target'])
-        print("Training transitions: ", sizes, count)
+        # ~ print("Training transitions: ", sizes, count)
         return np.array(x), np.array(y)
 
     def pretty_print(self):

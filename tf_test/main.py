@@ -7,17 +7,17 @@ import datetime
 import os 
 import numpy as np
 
-os.environ["CUDA_VISIBLE_DEVICES"] = ''
+# ~ os.environ["CUDA_VISIBLE_DEVICES"] = ''
 
 OBS_DIM = 18
 ACS_DIM = 4
 OUTPUT_DIM = 22
-EPOCH = 5
+EPOCH = 10
 STEP = 5
 N_EXPLORATIONS = None
 N_POPULATION = None 
 N_SAMPLES = 10000
-N_ITERATIONS = 1
+N_ITERATIONS = 10
 REG = 0.000
 training_data = None
 eval_data = None
@@ -63,7 +63,7 @@ for iteration in tqdm(range(N_ITERATIONS)):
     if training_data is None:
         for _ in range(N_SAMPLES):
             observation = [env.reset()]
-            actions = DE.select_actions( observation[0], 1, GRBF=GRBF, exploration=False)[0]
+            actions = DE.select_actions( observation[0], 1, 1, GRBF=GRBF, exploration=False)[0]
             """ Perform the action sequence """
             
             for t in range(50):
@@ -84,7 +84,7 @@ for iteration in tqdm(range(N_ITERATIONS)):
         with open(training_data, 'br') as f:
             [observations, actions] = pickle.load(f)
             DE.add_episodes(observations, actions)
-            Observations = observations.copy()
+            Observations = np.array(observations)[:,-1,:18]
 
 
     if not eval_data is None:

@@ -25,7 +25,7 @@ OBS_DIM = 18
 ACS_DIM = 4
 INPUT_DIM = OBS_DIM + ACS_DIM
 OUTPUT_DIM = 22
-EPOCH = 100
+EPOCH = 1
 
 
 class Normalization:
@@ -204,8 +204,8 @@ def evaluation(model, norm, data_type="eval", epoch='final'):
     f.close()
 
 
-(x_train, y_train) = compute_samples( training_data, norm)
-(x_eval, y_eval) = compute_samples( eval_data, norm)
+# ~ (x_train, y_train) = compute_samples( training_data, norm)
+# ~ (x_eval, y_eval) = compute_samples( eval_data, norm)
 
 
 model = tf.keras.models.Sequential([
@@ -234,12 +234,12 @@ model.compile(optimizer='adam',
 # ~ model.load_weights(model_dir+'model.h5')
 # ~ norm.load(model_dir)
 
-history = model.fit(x_train, y_train,
-                        epochs=EPOCH,
-                        #validation_split=0.1,
-                        validation_data = (x_eval,y_eval),
-                        shuffle=True
-                        )
+# ~ history = model.fit(x_train, y_train,
+                        # ~ epochs=EPOCH,
+                        # ~ #validation_split=0.1,
+                        # ~ validation_data = (x_eval,y_eval),
+                        # ~ shuffle=True
+                        # ~ )
 
 # ~ for epoch in range(EPOCH):
     # ~ history = model.fit(x_train, y_train,
@@ -258,8 +258,8 @@ with open(os.path.join(logdir, "config.txt"), "w") as f:
     model.summary(print_fn=write)
 
 
-""" Evaluation """
-data = history.history
-plot_MSE(data)
-evaluation(model,norm, "eval")
-evaluation(model,norm, "training")
+# ~ """ Evaluation """
+# ~ data = history.history
+# ~ plot_MSE(data)
+# ~ evaluation(model,norm, "eval")
+# ~ evaluation(model,norm, "training")

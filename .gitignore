@@ -8,4 +8,5 @@
 /tf_test/data/
 /tf_test/log/
 /tf_test/log_exploration/
+/tf_test/from_remote/
 /armtolstoy/arm_run_saves
