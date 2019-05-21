@@ -42,6 +42,7 @@ class ArmToolsToysV1_model(gym.Env):
         self.reward_type = 'sparse'
         self.distance_threshold = 0.05
         self.target_range = 0.15
+        self.epsilon = 0.05
         self._done = False
         self._steps = 0
         self._n_timesteps = 50
@@ -64,7 +65,9 @@ class ArmToolsToysV1_model(gym.Env):
         self.rank = rank
         self.logdir = logdir
         if not weights is None:
-            self.model.load_weights(weights+"model"+str(self.rank)+".h5")
+            with open(weights+"model"+str(self.rank)+".pk", 'rb') as f:
+                weights = pickle.load(f)
+            self.model.set_weights(weights)
 
 
     def nn_constructor(self,model_dir):
@@ -145,6 +148,7 @@ class ArmToolsToysV1_model(gym.Env):
                                              -0.3, 1.1,
                                              0.3, 1.1
                                              ]
+            self._observation[:3] = np.random.normal(0,self.epsilon,3)
         else:
             self._observation = obs.copy()
             

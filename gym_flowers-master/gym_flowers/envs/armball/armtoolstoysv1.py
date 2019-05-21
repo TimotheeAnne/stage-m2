@@ -14,7 +14,7 @@ class ArmToolsToysV1(gym.Env):
 
     def __init__(self, 
                  n_timesteps=50,
-                 epsilon=0.,
+                 epsilon=0.05,
                  distractor_noise = 0.01
                  ):
         
@@ -129,11 +129,11 @@ class ArmToolsToysV1(gym.Env):
         
         # Magnet
         self.magnet1_move = 0
-        self.magnet1_pos = self.magnet1_rest_state + np.random.normal(0,self.epsilon,2)
+        self.magnet1_pos = self.magnet1_rest_state #+ np.random.normal(0,self.epsilon,2)
             
         # Scratch
         self.scratch1_move = 0
-        self.scratch1_pos = self.scratch1_rest_state + np.random.normal(0,self.epsilon,2)
+        self.scratch1_pos = self.scratch1_rest_state #+ np.random.normal(0,self.epsilon,2)
 
         # construct vector of observations
         self.observation = np.zeros(self.n_obs)
