@@ -52,26 +52,26 @@ def train(policy, env_worker, model_worker, evaluator, reward_function, model_bu
     best_success_rate = -1
 
 
-    # ~ model_worker.envs[0].unwrapped.init( OracleRewardFuntion, rank, logdir)
+    model_worker.envs[0].unwrapped.init( OracleRewardFuntion, rank, logdir)
     
     my_tqdm = (lambda x: x) if rank >0 else tqdm
     for epoch in range(n_epochs):
 
-        # ~ # train
-        # ~ """ Collecting Data for training the model """
-        # ~ env_worker.clear_history()
-        # ~ observations, actions = np.zeros((0,51,36)), np.zeros((0,50,4))
-        # ~ for i_c in my_tqdm(range(n_collect)):
-            # ~ # interact with the environment
-            # ~ episode, goals_reached_ids = env_worker.generate_rollouts()
-            # ~ # save experience
-            # ~ observations = np.concatenate((observations, episode['o']))
-            # ~ actions = np.concatenate((actions, episode['u']))
+        # train
+        """ Collecting Data for training the model """
+        env_worker.clear_history()
+        observations, actions = np.zeros((0,51,36)), np.zeros((0,50,4))
+        for i_c in my_tqdm(range(n_collect)):
+            # interact with the environment
+            episode, goals_reached_ids = env_worker.generate_rollouts()
+            # save experience
+            observations = np.concatenate((observations, episode['o']))
+            actions = np.concatenate((actions, episode['u']))
         
-        # ~ model_worker.envs[0].unwrapped.add_episodes(observations, actions)
+        model_worker.envs[0].unwrapped.add_episodes(observations, actions)
         
-        # ~ """ Training the model"""
-        # ~ model_worker.envs[0].unwrapped.train()
+        """ Training the model"""
+        model_worker.envs[0].unwrapped.train()
         
         """ Training DDPG on the model """
         model_worker.clear_history()
@@ -94,9 +94,6 @@ def train(policy, env_worker, model_worker, evaluator, reward_function, model_bu
         best_success_rate, last_time = log(epoch, evaluator, model_worker, policy, best_success_rate, save_policies, best_policy_path, latest_policy_path,
             policy_save_interval, rank, periodic_policy_path, first_time, last_time)
     
-    # ~ if rank == 0:
-        # ~ plot_eval_episodes(logger.get_dir())
-        
 
 
 def launch(env, trial_id, n_epochs, num_cpu, seed, replay_strategy, policy_save_interval, clip_return, normalize_obs, nb_goals,
@@ -172,8 +169,8 @@ def launch(env, trial_id, n_epochs, num_cpu, seed, replay_strategy, policy_save_
     """ for model environment """
     # ~ params_for_model['env_name'] = 'myMultiTaskFetchArmNLP-v1'
     # ~ params_for_model['env_name'] = 'MultiTaskFetchArmNLP1-v0'
-    params_for_model['env_name'] = 'ArmToolsToys-v1'
-    # ~ params_for_model['env_name'] = 'ArmToolsToysModel-v1'
+    # ~ params_for_model['env_name'] = 'ArmToolsToys-v1'
+    params_for_model['env_name'] = 'ArmToolsToysModel-v1'
 
     params_for_model = config.prepare_params(params_for_model)
 
