@@ -11,37 +11,44 @@ import time
 
 true_traj, Acs = [], []
 count = 0
-for i in tqdm(range(1)):
+
+env = gym.make('ArmToolsToys-v1')
+
+for i in tqdm(range(10)):
     actions = 2*np.random.random((50,4))-1
-    actions= np.ones((50,4))
+
 
     traj = []
-    # ~ env = gym.make('ArmToolsToys-v1')
+
     
-    env = gym.make('ArmToolsToysModel-v1')
-    weights = "/home/tim/Documents/stage-m2/tf_test/log_exploration/2019-05-17 16:48:52.766910/"
-    env.unwrapped.init(lambda x: x,2,None,weights)
+    
+    # ~ weights = "./"
+    # ~ env.unwrapped.init(lambda x: x,0,None,weights)
     
     grip_pos = [[],[]]
     cube_pos = [[],[]]
-    obs = env.reset()
+    obs = env.unwrapped.reset(np.ones(3))
     traj.append(obs.copy())
-
-    for t in range(50):
+    env.render()
+    time.sleep(0.5)
+    # ~ for t in range(50):
         # ~ env.render()
-        # ~ time.sleep(0.0)
-        obs, reward, done, info = env.step(actions[t])
-        traj.append(obs.copy())
-        print(t,obs)
+        # ~ time.sleep(0.1)
+        # ~ obs, reward, done, info = env.step(actions[t])
+        # ~ traj.append(obs.copy())
+
         
-    if np.linalg.norm( obs[24:]) > 0:
-        count += 1 
-        Acs.append(actions)
-        true_traj.append(traj)
+    # ~ if np.linalg.norm( obs[32:]) > 0.3:
+        # ~ count += 1 
+        # ~ Acs.append(actions)
+        # ~ true_traj.append(traj)
+        # ~ print(count)
+    # ~ if count > 100:
+        # ~ break
 
-print("grasping stick", count)
+# ~ print("grasping stick", count)
 
-# ~ with open("/home/tim/Documents/stage-m2/tf_test/data/ArmToolsToy_magnetscratch.pk", 'bw') as f:
+# ~ with open("/home/tim/Documents/stage-m2/tf_test/data/ArmToolsToy_random_MS.pk", 'bw') as f:
     # ~ pickle.dump( [true_traj,Acs], f)
 
-env.close()
+# ~ env.close()

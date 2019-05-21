@@ -35,12 +35,18 @@ class Evaluator:
                 
         confusion_matrix = self.compute_confusion_matrix(true_rewards, predict_rewards)
 
-        with open(self.logdir+"/eval_"+data_type+"_"+str(self.iteration)+".pk",'bw') as f:
-            pickle.dump((traj_pred,trans_pred),f)
+        # ~ with open(self.logdir+"/eval_"+data_type+"_"+str(self.iteration)+".pk",'bw') as f:
+            # ~ pickle.dump((traj_pred,trans_pred),f)
 
-        with open(self.logdir+"/confusion_matrix_"+data_type+"_"+str(self.iteration)+".pk",'bw') as f:
-            pickle.dump(confusion_matrix,f)
+        # ~ with open(self.logdir+"/confusion_matrix_"+data_type+"_"+str(self.iteration)+".pk",'bw') as f:
+            # ~ pickle.dump(confusion_matrix,f)
+        
+        for b in range(DE.B):
+            with open(self.logdir+"/prediction_r"+str(b)+"_"+str(self.iteration)+".pk",'bw') as f:
+                pickle.dump((traj_pred[b],trans_pred[b]),f)
 
+            with open(self.logdir+"/confusion_matrix_r"+str(b)+"_"+str(self.iteration)+".pk",'bw') as f:
+                pickle.dump(confusion_matrix[b],f)
 
     def compute_confusion_matrix(self, true_rewards, predict_rewards):
         n_tasks = len(true_rewards[0])

@@ -6,14 +6,23 @@ from tqdm import tqdm
 import datetime
 import os 
 import numpy as np
+import argparse
 
-# ~ os.environ["CUDA_VISIBLE_DEVICES"] = ''
+# args
+parser = argparse.ArgumentParser()
+parser.add_argument('-gpu', type=str, default=False)
+parser.add_argument('-type', type=str, default="Random")
+args = parser.parse_args()
+
+
+if not int(args.gpu) :
+    os.environ["CUDA_VISIBLE_DEVICES"] = ''
 
 OBS_DIM = 18
 ACS_DIM = 4
 OUTPUT_DIM = 22
-EPOCH = 20
-STEP = 5
+EPOCH = 50
+STEP = 10
 N_EXPLORATIONS = None
 N_POPULATION = None 
 N_SAMPLES = 500
@@ -26,9 +35,23 @@ B = 20
 objects = [0,1,2,3,4]
 GRBF = False
 
-# ~ training_data = "/home/tim/Documents/stage-m2/tf_test/data/ArmToolsToy-v1_4000_train.pk"
-eval_data = "/home/tim/Documents/stage-m2/tf_test/data/ArmToolsToy_1000pertinent.pk"
-training_data = "/home/tim/Documents/stage-m2/armtolstoy/arm_run_saves/memory_based0/"
+assert(args.type in ["Random","GRBF","IMGEP"])
+
+if args.type == "Random":
+    print("Random")
+    GRBF = False
+
+elif args.type == "GRBF":
+    print("GRBF")
+    GRBF = True
+
+elif args.type == "IMGEP":
+    print("IMGEP")
+    training_data = "/home/tim/Documents/stage-m2/armtolstoy/arm_run_saves/imgep0/"
+
+
+eval_data = "/home/tim/Documents/stage-m2/tf_test/data/ArmToolsToyR_eval.pk"
+
 
 timestamp = datetime.datetime.now()
 logdir = './log/'+str(timestamp)
@@ -56,7 +79,7 @@ DE = Ensemble(OBS_DIM, ACS_DIM, OUTPUT_DIM, reg=REG, B=B, logdir=logdir, objects
 evaluator = Evaluator( None, eval_data, logdir, OBS_DIM )
 env = gym.make('ArmToolsToys-v1')
 
-Observations = []
+Observations = [[] for _ in range(DE.B)]
 
 for iteration in tqdm(range(N_ITERATIONS)):
     """ Generate episodes """
@@ -64,7 +87,8 @@ for iteration in tqdm(range(N_ITERATIONS)):
         for b in range(DE.B):
             for _ in range(N_SAMPLES):
                 observation = [env.reset()]
-                actions = DE.select_actions( observation[0], 1, 1, GRBF=GRBF, exploration=False)[0]
+                actions, _, _ = DE.select_actions( observation[0], 1, 1, GRBF=GRBF, exploration=False)
+                actions = actions[0]
                 """ Perform the action sequence """
                 
                 for t in range(50):
@@ -74,7 +98,7 @@ for iteration in tqdm(range(N_ITERATIONS)):
                     
                 """ Add the collected data to the replay buffer """
                 DE.add_episode(observation,  actions, b)
-                Observations.append(observation[-1][:18])
+                Observations[b].append(observation[-1][:18])
             DE.replay_buffers[b].pretty_print()
 
     elif 'armtolstoy' in training_data:
@@ -87,7 +111,7 @@ for iteration in tqdm(range(N_ITERATIONS)):
             for b in range(DE.B):
                 DE.add_episodes(observations[split_indexes[b]], actions[split_indexes[b]], b)
                 DE.replay_buffers[b].pretty_print()
-            Observations = np.array(observations)[:,-1,:18]
+                Observations[b] = observations[split_indexes[b]][:,-1,:18]
             
             
     """ Training the network """
@@ -97,8 +121,9 @@ for iteration in tqdm(range(N_ITERATIONS)):
     DE.plot_training()
 
     """ Evaluate """
-    with open(logdir+"/final_observations_"+str(iteration)+".pk", 'bw') as f:
-        pickle.dump(np.array(Observations), f)
+    for b in range(DE.B):
+        with open(logdir+"/final_observations_r"+str(b)+"_"+str(iteration)+".pk", 'bw') as f:
+            pickle.dump(np.array(Observations[b]), f)
     evaluator.eval(DE)
 
 DE.save_ensemble()

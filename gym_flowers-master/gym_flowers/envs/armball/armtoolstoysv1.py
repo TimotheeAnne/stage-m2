@@ -96,9 +96,13 @@ class ArmToolsToysV1(gym.Env):
             d = np.linalg.norm(achieved_goal - goal, ord=2)
         return -(d > self.epsilon).astype(np.int)
 
-    def reset(self):
+    def reset(self, obs=None):
         # Arm
-        self.arm_angles = self.arm_rest_state[:-1] + np.random.normal(0,self.epsilon,3)
+        if obs is None:
+            self.arm_angles = self.arm_rest_state[:-1] + np.random.normal(0,self.epsilon,3)
+        else:
+            self.arm_angles = obs[:3]
+
         a = self.arm_angle_shift + np.cumsum(np.array(self.arm_angles))
         a_pi = np.pi * a
         self.hand_pos = np.array([np.sum(np.cos(a_pi)*self.arm_lengths),
@@ -134,7 +138,7 @@ class ArmToolsToysV1(gym.Env):
         # Scratch
         self.scratch1_move = 0
         self.scratch1_pos = self.scratch1_rest_state #+ np.random.normal(0,self.epsilon,2)
-
+        
         # construct vector of observations
         self.observation = np.zeros(self.n_obs)
         self.observation[:self.half] = self.observe()
@@ -142,6 +146,7 @@ class ArmToolsToysV1(gym.Env):
         self.steps = 0
         self.done = False
         return self.observation
+        
         
     def observe(self):
         return [

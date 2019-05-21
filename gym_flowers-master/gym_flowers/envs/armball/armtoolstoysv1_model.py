@@ -53,7 +53,7 @@ class ArmToolsToysV1_model(gym.Env):
         
         """ model Loading """
         self.model_dir = None
-        self.eval_data = "../../../../../tf_test/data/ArmToolsToy_1000pertinent.pk"
+        self.eval_data = "../../../../../tf_test/data/ArmToolsToyR_eval.pk"
         self.replay_buffer = ReplayBuffer()
         self.model = self.nn_constructor(self.model_dir)
         self.EPOCH = 10
@@ -104,7 +104,7 @@ class ArmToolsToysV1_model(gym.Env):
 
 
     def train(self):
-        for _ in range(10):
+        for _ in range(5):
             (x_train, y_train) = self.replay_buffer.sample(random.sample)
             es = tf.keras.callbacks.EarlyStopping(monitor='val_loss', min_delta=0, patience=2,verbose=0, mode='auto')
             self.model.fit(x_train, y_train, epochs=self.EPOCH, shuffle=True, verbose=False, validation_split=0.1, callbacks=[es])

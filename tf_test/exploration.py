@@ -6,8 +6,18 @@ from tqdm import tqdm
 import datetime
 import os 
 import numpy as np
+import argparse
 
-os.environ["CUDA_VISIBLE_DEVICES"] = ''
+# args
+parser = argparse.ArgumentParser()
+parser.add_argument('-gpu', type=str, default=False)
+parser.add_argument('-type', type=str, default="Random")
+args = parser.parse_args()
+
+
+if not int(args.gpu) :
+    os.environ["CUDA_VISIBLE_DEVICES"] = ''
+
 
 OBS_DIM = 18
 ACS_DIM = 4
@@ -15,11 +25,11 @@ OUTPUT_DIM = 22
 REG = 0.000
 objects = [0,1,2,3,4]
 
-EPOCH = 20
-STEP = 5
+EPOCH = 50
+STEP = 10
 N_EXPLORATIONS = 500
 N_POPULATION = 1000
-N_ELITES = N_POPULATION//10
+N_ELITES = N_POPULATION//20
 N_SAMPLES = None
 N_ITERATIONS = 10
 B = 20
@@ -29,8 +39,18 @@ training_data = None
 eval_data = None
 episodic_exploration = False
 
+assert(args.type in ["Random","GRBF"])
+
+if args.type == "Random":
+    print("Random")
+    GRBF = False
+
+elif args.type == "GRBF":
+    print("GRBF")
+    GRBF = True
+    
 # ~ training_data = "/home/tim/Documents/stage-m2/tf_test/data/ArmToolsToy-v1_4000_train.pk"
-eval_data = "/home/tim/Documents/stage-m2/tf_test/data/ArmToolsToy_1000pertinent.pk"
+eval_data = "/home/tim/Documents/stage-m2/tf_test/data/ArmToolsToyR_eval.pk"
 
 timestamp = datetime.datetime.now()
 logdir = './log_exploration/'+str(timestamp)
@@ -60,7 +80,7 @@ DE = Ensemble(OBS_DIM, ACS_DIM, OUTPUT_DIM, reg=REG, B=B, logdir=logdir, objects
 evaluator = Evaluator( None, eval_data, logdir, OBS_DIM )
 env = gym.make('ArmToolsToys-v1')
 
-Observations = []
+Observations = [[] for _ in range(DE.B)]
 
 """ Episodic Exploration """
 for iteration in tqdm(range(N_ITERATIONS)):
@@ -74,12 +94,12 @@ for iteration in tqdm(range(N_ITERATIONS)):
             
             """ Perform the action sequence """
             for j in range(N_ELITES):
-                obs = env.reset()
+                env.unwrapped.reset(obs)
                 for t in range(Tmax):
                     # ~ #env.render()
                     obs, _, _, _ = env.step(actions[j][t])
                     observations[j] = np.concatenate( (observations[j], [obs]))
-                Observations.append( obs[:18])
+                Observations[b].append(obs[:18])
 
             if iteration > 0:
                 DE.save_exploration(actions, uncertainty, observations, pred)
@@ -94,9 +114,9 @@ for iteration in tqdm(range(N_ITERATIONS)):
 
     DE.plot_training()
 
-    """ Evaluate """
-    with open(logdir+"/final_observations_"+str(iteration)+".pk", 'bw') as f:
-        pickle.dump(np.array(Observations), f)
+    for b in range(DE.B):
+        with open(logdir+"/final_observations_r"+str(b)+"_"+str(iteration)+".pk", 'bw') as f:
+            pickle.dump(np.array(Observations[b]), f)
     evaluator.eval(DE)
 
 DE.save_ensemble()
