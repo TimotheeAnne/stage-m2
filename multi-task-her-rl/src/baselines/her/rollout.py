@@ -4,7 +4,7 @@ import time
 import pickle
 import numpy as np
 from mpi4py import MPI
-from mujoco_py import MujocoException
+# ~ from mujoco_py import MujocoException
 
 from src.reward_function.reward_function import OracleRewardFuntion
 from .util import convert_episode_to_batch_major, store_args
@@ -155,9 +155,9 @@ class RolloutWorker:
 
                     if self.render:
                         self.envs[i].render()
-                except MujocoException as e:
+                except :
                     return self.generate_rollouts()
-
+    
             if np.isnan(o_new).any():
                 #self.logger.warning('NaN caught during rollout generation. Trying again...')
                 self.reset_all_rollouts()

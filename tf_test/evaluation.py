@@ -1,7 +1,7 @@
 import sys
 import pickle 
 sys.path.append('../multi-task-her-rl/src/reward_function/')
-from reward_function import OracleRewardFuntion
+from reward_function_model import OracleRewardFuntion
 import numpy as np
 
 class Evaluator:

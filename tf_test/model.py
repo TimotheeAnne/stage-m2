@@ -85,8 +85,7 @@ class Ensemble:
         for b in range(self.B):
             x, y = self.replay_buffers[b].sample(sampling_function, self.objects)
             if validation:
-                es = tf.keras.callbacks.EarlyStopping(monitor='val_loss', min_delta=0, patience=2,
-                    verbose=0, mode='auto')
+                es = tf.keras.callbacks.EarlyStopping(monitor='val_loss', min_delta=0, patience=2, verbose=0, mode='auto')
 
                 callbacks = [es] if early_stopping else []
                 

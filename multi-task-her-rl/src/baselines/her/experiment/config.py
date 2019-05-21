@@ -30,7 +30,7 @@ DEFAULT_PARAMS = {
     'scope': 'ddpg',  # can be tweaked for testing
     'relative_goals': False,
     # training
-    'n_cycles': 10,  # per epoch
+    'n_cycles': 2,  # per epoch
     'n_collect': 100, # number of episodes to collect data for training the model
     'rollout_batch_size': 1,  # per mpi thread
     'n_batches': 100,  # training batches per cycle
