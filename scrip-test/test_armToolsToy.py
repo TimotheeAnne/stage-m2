@@ -12,14 +12,14 @@ import time
 true_traj, Acs = [], []
 count = 0
 
-env = gym.make('ArmToolsToys-v1')
+
 
 for i in tqdm(range(10)):
     actions = 2*np.random.random((50,4))-1
 
 
     traj = []
-
+    env = gym.make('ArmToolsToys-v1')
     
     
     # ~ weights = "./"
@@ -27,14 +27,15 @@ for i in tqdm(range(10)):
     
     grip_pos = [[],[]]
     cube_pos = [[],[]]
-    obs = env.unwrapped.reset(np.ones(3))
-    traj.append(obs.copy())
-    env.render()
-    time.sleep(0.5)
-    # ~ for t in range(50):
-        # ~ env.render()
-        # ~ time.sleep(0.1)
-        # ~ obs, reward, done, info = env.step(actions[t])
+    obs = env.reset()
+    # ~ obs = env.unwrapped.reset(np.(3))
+    # ~ traj.append(obs.copy())
+    # ~ env.render()
+    # ~ time.sleep(0.5)
+    for t in range(50):
+        env.render()
+        time.sleep(0.1)
+        obs, reward, done, info = env.step(actions[t])
         # ~ traj.append(obs.copy())
 
         

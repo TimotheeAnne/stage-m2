@@ -35,7 +35,7 @@ NB_GOALS = 30
 
 
 def train(policy, env_worker, model_worker, evaluator, reward_function, model_buffer, n_collect,
-          n_epochs, n_test_rollouts, n_cycles, n_batches, policy_save_interval,
+          n_epochs, n_test_rollouts, n_cycles, n_batches, policy_save_interval, models_folder,
           save_policies, logdir, **kwargs):
     rank = MPI.COMM_WORLD.Get_rank()
 
@@ -52,27 +52,27 @@ def train(policy, env_worker, model_worker, evaluator, reward_function, model_bu
     best_success_rate = -1
 
 
-    model_worker.envs[0].unwrapped.init( OracleRewardFuntion, rank, logdir)
+    model_worker.envs[0].unwrapped.init( OracleRewardFuntion, rank, logdir, weights=models_folder)
     
     my_tqdm = (lambda x: x) if rank >0 else tqdm
     for epoch in range(n_epochs):
+        if models_folder is None:
+            # train the model
+            """ Collecting Data for training the model """
+            env_worker.clear_history()
+            observations, actions = np.zeros((0,51,36)), np.zeros((0,50,4))
+            for i_c in my_tqdm(range(n_collect)):
+                # interact with the environment
+                episode, goals_reached_ids = env_worker.generate_rollouts()
+                # save experience
+                observations = np.concatenate((observations, episode['o']))
+                actions = np.concatenate((actions, episode['u']))
+            
+            model_worker.envs[0].unwrapped.add_episodes(observations, actions)
+            
+            """ Training the model"""
+            model_worker.envs[0].unwrapped.train()
 
-        # train
-        """ Collecting Data for training the model """
-        env_worker.clear_history()
-        observations, actions = np.zeros((0,51,36)), np.zeros((0,50,4))
-        for i_c in my_tqdm(range(n_collect)):
-            # interact with the environment
-            episode, goals_reached_ids = env_worker.generate_rollouts()
-            # save experience
-            observations = np.concatenate((observations, episode['o']))
-            actions = np.concatenate((actions, episode['u']))
-        
-        model_worker.envs[0].unwrapped.add_episodes(observations, actions)
-        
-        """ Training the model"""
-        model_worker.envs[0].unwrapped.train()
-        
         """ Training DDPG on the model """
         model_worker.clear_history()
 
@@ -96,8 +96,8 @@ def train(policy, env_worker, model_worker, evaluator, reward_function, model_bu
     
 
 
-def launch(env, trial_id, n_epochs, num_cpu, seed, replay_strategy, policy_save_interval, clip_return, normalize_obs, nb_goals,
-           override_params={}, save_policies=True):
+def launch(env, trial_id, n_epochs, num_cpu, seed, replay_strategy, policy_save_interval, clip_return,
+            normalize_obs, nb_goals, models_folder, override_params={}, save_policies=True):
     
     # Fork for multi-CPU MPI implementation.
     if num_cpu > 1:
@@ -219,7 +219,7 @@ def launch(env, trial_id, n_epochs, num_cpu, seed, replay_strategy, policy_save_
     evaluator.seed(rank_seed * 10)
 
     train(logdir=logdir, policy=policy, env_worker=env_worker, model_worker=model_worker,  evaluator=evaluator,
-          n_epochs=n_epochs, model_buffer = model_buffer, n_collect=params['n_collect'],
+          n_epochs=n_epochs, model_buffer = model_buffer, n_collect=params['n_collect'], models_folder=models_folder,
           n_test_rollouts=params['n_test_rollouts'], n_cycles=params['n_cycles'], n_batches=params['n_batches'],
           policy_save_interval=policy_save_interval, save_policies=save_policies, reward_function=reward_function)
 
@@ -241,6 +241,6 @@ if __name__ == '__main__':
     parser.add_argument('--normalize_obs', type=bool, default=False, help='normalize observations and goals')
     parser.add_argument('--clip_return', type=int, default=1, help='whether or not returns should be clipped')
     parser.add_argument('--nb_goals', type=int, default=NB_GOALS, help='number of instructions')
-
+    parser.add_argument('--models_folder', type=str, default=None, help='folder name in Evaluation_data of pretrain models')
     kwargs = vars(parser.parse_args())
     launch(**kwargs)

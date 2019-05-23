@@ -40,7 +40,10 @@ class Evaluator:
 
         # ~ with open(self.logdir+"/confusion_matrix_"+data_type+"_"+str(self.iteration)+".pk",'bw') as f:
             # ~ pickle.dump(confusion_matrix,f)
-        
+        print(np.shape(true_traj), np.shape(traj_pred), np.shape(trans_pred)) 
+        print("t", true_traj[:2,0,3:5])
+        print("traj", traj_pred[:,0,:2,3:5])
+        print("trans", trans_pred[:,0,:2,3:5]) 
         for b in range(DE.B):
             with open(self.logdir+"/prediction_r"+str(b)+"_"+str(self.iteration)+".pk",'bw') as f:
                 pickle.dump((traj_pred[b],trans_pred[b]),f)

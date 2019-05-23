@@ -65,7 +65,7 @@ class ArmToolsToysV1_model(gym.Env):
         self.rank = rank
         self.logdir = logdir
         if not weights is None:
-            with open(weights+"model"+str(self.rank)+".pk", 'rb') as f:
+            with open("../../../../../tf_test/log/Evaluation_data/"+weights+"/model"+str(self.rank)+".pk", 'rb') as f:
                 weights = pickle.load(f)
             self.model.set_weights(weights)
 
@@ -92,7 +92,7 @@ class ArmToolsToysV1_model(gym.Env):
               loss='mean_squared_error',
               metrics=['mean_squared_error']
               )
-        self.weight_init = model.get_weights()
+
         return model
 
 
