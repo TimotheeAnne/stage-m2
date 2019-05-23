@@ -138,6 +138,7 @@ def launch(env, trial_id, n_epochs, num_cpu, seed, replay_strategy, policy_save_
     params = config.DEFAULT_PARAMS
     params['date_time'] = str(datetime.datetime.now())
     params['env_name'] = env
+    params['models_folder'] = models_folder
     params['normalize_obs'] = normalize_obs
     params['seed'] = seed
     params['logdir'] = logdir
