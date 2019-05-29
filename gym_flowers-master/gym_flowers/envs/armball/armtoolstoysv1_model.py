@@ -111,6 +111,10 @@ class ArmToolsToysV1_model(gym.Env):
 
         self.eval()
         self.iteration += 1
+        if self.iteration == 10:
+            weights = self.model.get_weights()
+            with open(self.logdir+'/model'+str(self.rank)+'.pk', 'bw') as f:
+                pickle.dump( weights, f) 
 
 
     def seed(self, seed):

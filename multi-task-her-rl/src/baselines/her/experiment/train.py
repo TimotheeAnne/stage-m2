@@ -23,7 +23,7 @@ import src.baselines.common.tf_util as U
 
 
 # Me
-from plot_eval_episode import plot_eval_episodes
+#from plot_eval_episode import plot_eval_episodes
 from src.baselines.her.replay_buffer import ReplayBuffer
 from src.baselines.her.ddpg import dims_to_shapes
 os.environ["CUDA_VISIBLE_DEVICES"] = ''
