@@ -1,22 +1,22 @@
 GitHub repository of the experiments run during my master-2 internship.
 
-## ArmToolsToys_IMGEP
+### ArmToolsToys_IMGEP
 Memory-based IMGEP used for the ArmToolsToys environment.
 
-## gym_flowers-armToolsToys
+### gym_flowers-armToolsToys
 Arm, ArmBall and ArmToolsToys environments.
 
-## gym_flowers-FetchArm
+### gym_flowers-FetchArm
 FetchArm envrionment.
 
-## modular_multi-goal_DDPG_RL
+### modular_multi-goal_DDPG_RL
 Our reinforcement learning algorithm using DDPG.
 
-## PETS
+### PETS
 Repository of PETS algorithm (https://github.com/kchua/handful-of-trials).
 
-## Scripts
+### Scripts
 Various scripts to test and plot.
 
-## Tensorflow_model
+### Tensorflow_model
 Our tensorflow model implementation.
