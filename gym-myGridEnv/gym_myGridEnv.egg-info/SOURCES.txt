@@ -1,6 +1,0 @@
-README.md
-gym_myGridEnv.egg-info/PKG-INFO
-gym_myGridEnv.egg-info/SOURCES.txt
-gym_myGridEnv.egg-info/dependency_links.txt
-gym_myGridEnv.egg-info/requires.txt
-gym_myGridEnv.egg-info/top_level.txt

@@ -1,7 +1,0 @@
-gym
-numpy
-matplotlib
-dotmap
-tqdm
-future
-termiplot
