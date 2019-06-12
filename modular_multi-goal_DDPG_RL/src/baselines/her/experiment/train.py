@@ -28,10 +28,24 @@ from src.baselines.her.ddpg import dims_to_shapes
 os.environ["CUDA_VISIBLE_DEVICES"] = ''
 #
 
+
 NUM_CPU = 1
 NB_EPOCHS = 10
 NB_GOALS = 30
 
+def load_episode(obs, acs, reward_function):
+    g = np.zeros(30)
+    g[0] = 1
+    g = np.array( [[g for _ in range(50)]])
+    episode = dict(o=np.array([obs]), u=np.array([acs]), g=g)
+    rewards = reward_function.eval_all_goals_from_episode(episode)
+    goals_reached_ids = []
+    for i in range(rewards.shape[0]):
+        goals_reached_ids.append([])
+        for j in range(rewards.shape[1]):
+            if rewards[i][j] == 1:
+                goals_reached_ids[i].append(j)
+    return episode, goals_reached_ids
 
 def train(policy, env_worker, model_worker, evaluator, reward_function, model_buffer, n_collect,
           n_epochs, n_test_rollouts, n_cycles, n_batches, policy_save_interval, models_folder,
@@ -51,11 +65,13 @@ def train(policy, env_worker, model_worker, evaluator, reward_function, model_bu
     best_success_rate = -1
 
 
-    model_worker.envs[0].unwrapped.init( OracleRewardFuntion, rank, logdir, weights=models_folder)
-    
+    #model_worker.envs[0].unwrapped.init( OracleRewardFuntion, rank, logdir, weights=models_folder)
+    with open("/home/tim/Documents/stage-m2/ArmToolsToys_IMGEP/save_for_replay_buffer/imgep0/imgep_"+str(rank)+".pk", 'rb') as f:
+        [Obs, Acs] = pickle.load(f)
+
     my_tqdm = (lambda x: x) if rank >0 else tqdm
     for epoch in range(n_epochs):
-        if models_folder is None:
+        if False:
             # train the model
             """ Collecting Data for training the model """
             env_worker.clear_history()
@@ -63,6 +79,7 @@ def train(policy, env_worker, model_worker, evaluator, reward_function, model_bu
             for i_c in my_tqdm(range(n_collect)):
                 # interact with the environment
                 episode, goals_reached_ids = env_worker.generate_rollouts()
+                
                 # save experience
                 observations = np.concatenate((observations, episode['o']))
                 actions = np.concatenate((actions, episode['u']))
@@ -77,7 +94,10 @@ def train(policy, env_worker, model_worker, evaluator, reward_function, model_bu
 
         for i_c in my_tqdm(range(n_cycles)):
             # interact with the environment
-            episode, goals_reached_ids = model_worker.generate_rollouts()
+            # ~ episode, goals_reached_ids = model_worker.generate_rollouts()
+            """ Feed the replay buffer from previously collected data """
+            idx = epoch*n_cycles+i_c
+            episode, goals_reached_ids = load_episode(Obs[idx],Acs[idx], reward_function)
             # save experience in memory
             policy.store_episode(episode, goals_reached_ids)
             # train the reward function and the actor-critic algorithm
@@ -166,8 +186,8 @@ def launch(env, trial_id, n_epochs, num_cpu, seed, replay_strategy, policy_save_
     params_for_eval = config.prepare_params(params_for_eval)
     
     """ for model environment """
-    # ~ params_for_model['env_name'] = 'ArmToolsToys-v1'
-    params_for_model['env_name'] = 'ArmToolsToysModel-v1'
+    params_for_model['env_name'] = 'ArmToolsToys-v1'
+    # ~ params_for_model['env_name'] = 'ArmToolsToysModel-v1'
 
     params_for_model = config.prepare_params(params_for_model)
 
