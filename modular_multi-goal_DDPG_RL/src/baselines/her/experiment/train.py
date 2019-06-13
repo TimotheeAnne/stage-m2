@@ -35,7 +35,7 @@ NB_GOALS = 30
 
 def load_episode(obs, acs, reward_function):
     g = np.zeros(30)
-    g[0] = 1
+    g[np.random.randint(0,30)] = 1
     g = np.array( [[g for _ in range(50)]])
     episode = dict(o=np.array([obs]), u=np.array([acs]), g=g)
     rewards = reward_function.eval_all_goals_from_episode(episode)
@@ -66,7 +66,7 @@ def train(policy, env_worker, model_worker, evaluator, reward_function, model_bu
 
 
     #model_worker.envs[0].unwrapped.init( OracleRewardFuntion, rank, logdir, weights=models_folder)
-    with open("/home/tim/Documents/stage-m2/ArmToolsToys_IMGEP/save_for_replay_buffer/imgep0/imgep_"+str(rank)+".pk", 'rb') as f:
+    with open("/lustre/tanne/data/save_for_replay_buffer/"+models_folder+"/cpu_"+str(rank)+".pk", 'rb') as f:
         [Obs, Acs] = pickle.load(f)
 
     my_tqdm = (lambda x: x) if rank >0 else tqdm
